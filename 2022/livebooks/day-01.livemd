@@ -1,0 +1,39 @@
+# Advent of code 2022 - Day 1
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+## Puzzle 1
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.chunk_by(&("" == &1))
+|> Enum.filter(fn [head | _tail] -> head != "" end)
+|> Enum.map(fn list -> Enum.map(list, &String.to_integer(&1)) |> Enum.sum() end)
+|> Enum.max()
+```
+
+## Puzzle 2
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.chunk_by(&("" == &1))
+|> Enum.filter(fn [head | _tail] -> head != "" end)
+|> Enum.map(fn list -> Enum.map(list, &String.to_integer(&1)) |> Enum.sum() end)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.sum()
+```
