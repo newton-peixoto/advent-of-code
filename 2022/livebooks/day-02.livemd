@@ -1,0 +1,112 @@
+# Advent of code day 02
+
+## Dependencies
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+```elixir
+defmodule RoundChecker do
+  @what_to_do %{
+    "X" => :lose,
+    "Y" => :draw,
+    "Z" => :win
+  }
+
+  @opponent_map_to_me %{
+    "A" => "X",
+    "B" => "Y",
+    "C" => "Z"
+  }
+
+  @opponent_is_defeated_by %{
+    "A" => "Y",
+    "B" => "Z",
+    "C" => "X"
+  }
+
+  @it_defeats_me %{
+    "A" => "Z",
+    "B" => "X",
+    "C" => "Y"
+  }
+
+  @me_values %{
+    "X" => 1,
+    "Y" => 2,
+    "Z" => 3
+  }
+
+  @defeats_opponent %{
+    "X" => "C",
+    "Y" => "A",
+    "Z" => "B"
+  }
+
+  @match_value %{
+    draw: 3,
+    win: 6,
+    defeated: 0
+  }
+
+  def choose_and_play(opponent, you) do
+    what_to_play = choose_what_to_play(opponent, you)
+
+    calculate_points(opponent, what_to_play)
+  end
+
+  defp choose_what_to_play(opponent, you) do
+    case @what_to_do[you] do
+      :win -> @opponent_is_defeated_by[opponent]
+      :lose -> @it_defeats_me[opponent]
+      _ -> @opponent_map_to_me[opponent]
+    end
+  end
+
+  def calculate_points(opponent, you) do
+    round_result(opponent, you) + @me_values[you]
+  end
+
+  defp round_result(opponent, you) do
+    cond do
+      @defeats_opponent[you] == opponent -> @match_value[:win]
+      @it_defeats_me[opponent] == you -> @match_value[:defeated]
+      true -> @match_value[:draw]
+    end
+  end
+end
+```
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.map(&String.split/1)
+|> Enum.reduce(0, fn [opponent, you | _tail], acc ->
+  RoundChecker.calculate_points(opponent, you) + acc
+end)
+```
+
+## Part 2
+
+```elixir
+input
+|> Enum.map(&String.split/1)
+|> Enum.reduce(0, fn [opponent, you | _tail], acc ->
+  RoundChecker.choose_and_play(opponent, you) + acc
+end)
+```
