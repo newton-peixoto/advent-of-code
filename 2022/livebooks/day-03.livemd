@@ -1,0 +1,95 @@
+# Day 03
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])input = Kino.Input.textarea("Please paste your input file:")
+```
+
+## Setup
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+lower_case_map = for n <- ?a..?z, into: %{}, do: {[n], n - 96}
+upper_case_map = for n <- ?A..?Z, into: %{}, do: {[n], n - 38}
+
+letters_map = Map.merge(lower_case_map, upper_case_map)
+
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+```
+
+## Part 01
+
+```elixir
+input
+|> Enum.reduce(0, fn element, acc ->
+  {first, last} = String.split_at(element, round(String.length(element) / 2))
+
+  first =
+    first
+    |> String.to_charlist()
+    |> Enum.map(fn element ->
+      letters_map[[element]]
+    end)
+
+  last =
+    last
+    |> String.to_charlist()
+    |> Enum.map(fn element ->
+      letters_map[[element]]
+    end)
+
+  diff = List.myers_difference(first, last)
+
+  Enum.sum(diff[:eq]) + acc
+end)
+```
+
+## Part 02
+
+```elixir
+input
+|> Enum.chunk_every(3)
+|> Enum.reduce(0, fn [first, second | [third | _tail]], acc ->
+  first =
+    first
+    |> String.to_charlist()
+    |> Enum.map(fn element ->
+      letters_map[[element]]
+    end)
+    |> Enum.uniq()
+
+  second =
+    second
+    |> String.to_charlist()
+    |> Enum.map(fn element ->
+      letters_map[[element]]
+    end)
+    |> Enum.uniq()
+
+  third =
+    third
+    |> String.to_charlist()
+    |> Enum.map(fn element ->
+      letters_map[[element]]
+    end)
+    |> Enum.uniq()
+
+  sum_of_intersection =
+    first
+    |> Enum.filter(fn e ->
+      Enum.member?(third, e) && Enum.member?(second, e)
+    end)
+    |> Enum.sum()
+
+  sum_of_intersection + acc
+end)
+```
