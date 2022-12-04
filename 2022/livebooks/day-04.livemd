@@ -1,0 +1,60 @@
+# day 04
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split([",", "\n"])
+```
+
+## Part 01
+
+```elixir
+input
+|> Enum.chunk_every(2)
+|> Enum.reduce(0, fn [first_range, second_range | []], acc ->
+  [a, b | _tail] = first_range |> String.split("-") |> Enum.map(&String.to_integer/1)
+  [c, d | _tail] = second_range |> String.split("-") |> Enum.map(&String.to_integer/1)
+
+  listA = Range.new(a, b) |> Enum.to_list()
+  listB = Range.new(c, d) |> Enum.to_list()
+
+  if listA -- listB == [] || listB -- listA == [] do
+    acc + 1
+  else
+    acc
+  end
+end)
+```
+
+## Part 02
+
+```elixir
+input
+|> Enum.chunk_every(2)
+|> Enum.reduce(0, fn [first_range, second_range | []], acc ->
+  [a, b | _tail] = first_range |> String.split("-") |> Enum.map(&String.to_integer/1)
+  [c, d | _tail] = second_range |> String.split("-") |> Enum.map(&String.to_integer/1)
+
+  listA = Range.new(a, b) |> Enum.to_list()
+  listB = Range.new(c, d) |> Enum.to_list()
+
+  if length(listA -- listB) < length(listA) || length(listB -- listA) < length(listB) do
+    acc + 1
+  else
+    acc
+  end
+end)
+```
