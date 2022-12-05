@@ -1,0 +1,84 @@
+# Advent of code day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+[stacks, moves | []] =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n\n"])
+
+moves =
+  moves
+  |> String.split("\n")
+  |> Enum.map(&String.split(&1, " "))
+  |> Enum.map(fn [_, quantity, _, origin_stack, _, destiny_stack | []] ->
+    {String.to_integer(quantity), String.to_integer(origin_stack),
+     String.to_integer(destiny_stack)}
+  end)
+
+[_keys | stacks] = stacks |> String.split("\n") |> Enum.reverse()
+
+stacks =
+  stacks
+  |> Enum.map(fn stack ->
+    stack
+    |> String.graphemes()
+    |> Enum.chunk_every(3, 4, :discard)
+    |> Enum.with_index(1)
+  end)
+  |> List.flatten()
+  |> Enum.filter(fn {[_a, value | _tail], _key} -> value != " " end)
+  |> Enum.reduce(%{}, fn {[_a, value, _c], key}, acc ->
+    new_list = [value | Map.get(acc, key, [])]
+    Map.put(acc, key, new_list)
+  end)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+stack_after_moves =
+  Enum.reduce(moves, stacks, fn {count, from, to}, crates ->
+    {take, remain} = Enum.split(crates[from], count) |> IO.inspect()
+
+    Map.put(crates, from, remain)
+    |> Map.put(to, Enum.reverse(take) ++ crates[to])
+  end)
+
+key =
+  Enum.reduce(stack_after_moves, "", fn {_key, [head | _]}, acc ->
+    acc <> head
+  end)
+```
+
+## Part 02
+
+```elixir
+stack_after_moves =
+  Enum.reduce(moves, stacks, fn {count, from, to}, crates ->
+    {take, remain} = Enum.split(crates[from], count)
+
+    Map.put(crates, from, remain)
+    |> Map.put(to, take ++ crates[to])
+  end)
+
+key =
+  Enum.reduce(stack_after_moves, "", fn {_key, [head | _]}, acc ->
+    acc <> head
+  end)
+```
