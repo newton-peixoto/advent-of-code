@@ -1,0 +1,59 @@
+# Advent of code day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+```elixir
+defmodule Recursion do
+  def solve(enum, amount_of_distinct_chars) do
+    recur(enum, amount_of_distinct_chars, amount_of_distinct_chars)
+  end
+
+  def recur([], _final, counter), do: counter
+
+  def recur(enum, final, counter) do
+    {half, remain} = Enum.split(enum, final)
+    [_head | tail] = half
+    is_repeated = Enum.frequencies(half) |> Enum.find(fn {_key, value} -> value >= 2 end)
+
+    case is_repeated do
+      nil -> counter
+      _ -> recur(tail ++ remain, final, counter + 1)
+    end
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.graphemes()
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Recursion.solve(input, 4)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Recursion.solve(input, 14)
+```
