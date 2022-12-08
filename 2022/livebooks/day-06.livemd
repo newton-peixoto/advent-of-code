@@ -1,4 +1,4 @@
-# Advent of code day 05
+# Advent of code day 06
 
 ```elixir
 Mix.install([
@@ -18,7 +18,7 @@ defmodule Recursion do
     recur(enum, amount_of_distinct_chars, amount_of_distinct_chars)
   end
 
-  def recur([], _final, counter), do: counter
+  def recur([], _final, counter), do: nil
 
   def recur(enum, final, counter) do
     {half, remain} = Enum.split(enum, final)

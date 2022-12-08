@@ -1,0 +1,128 @@
+# Advent of code day 07
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n"])
+```
+
+```elixir
+defmodule Recursion do
+  def put_file_or_dir("dir " <> directory_name, structure, current_path),
+    do:
+      structure
+      |> put_in(Enum.reverse([directory_name | current_path]), %{})
+
+  def put_file_or_dir(file, structure, current_path) do
+    [size_str, filename] = String.split(file, " ")
+    size = size_str |> String.to_integer()
+
+    structure
+    |> put_in(Enum.reverse([filename | current_path]), size)
+  end
+
+  def solve(input), do: solve(input, %{}, [])
+
+  def solve([], structure, _), do: structure
+
+  def solve(["$ ls" | tail], structure, current_path) do
+    {ls_results, rest_commands} =
+      tail
+      |> Enum.split_while(&(not String.starts_with?(&1, "$")))
+
+    new_directory =
+      ls_results
+      |> Enum.reduce(structure, fn command, structure ->
+        put_file_or_dir(command, structure, current_path)
+      end)
+
+    solve(rest_commands, new_directory, current_path)
+  end
+
+  def solve(["$ cd .." | tail], structure, [_ | current_path]),
+    do: solve(tail, structure, current_path)
+
+  def solve(["$ cd /" | tail], structure, _current_path), do: solve(tail, structure, [])
+
+  def solve(["$ cd " <> dir | tail], structure, current_path) do
+    solve(tail, structure, [dir | current_path])
+  end
+end
+```
+
+```elixir
+defmodule Sum do
+  def sum_dir(%{} = structure, result) do
+    {total_size, result} =
+      structure
+      |> Enum.reduce({0, result}, fn {_folder, value}, {total_size, result} ->
+        # aqui estamos fazendo uma busca em profundidade
+        {sub_total_size, result} = sum_dir(value, result)
+        {total_size + sub_total_size, result}
+      end)
+
+    case total_size < 100_000 do
+      true -> {total_size, total_size + result}
+      false -> {total_size, result}
+    end
+  end
+
+  def sum_dir(size, result), do: {size, result}
+
+  def find_dir_to_be_deleted(%{} = structure, candidates, amount_of_space) do
+    {total_size, candidates} =
+      structure
+      |> Enum.reduce({0, candidates}, fn {_name, value}, {total_size, candidates} ->
+        {sub_total_size, candidates} = find_dir_to_be_deleted(value, candidates, amount_of_space)
+
+        {total_size + sub_total_size, candidates}
+      end)
+
+    case total_size >= amount_of_space do
+      true -> {total_size, [total_size | candidates]}
+      false -> {total_size, candidates}
+    end
+  end
+
+  def find_dir_to_be_deleted(structure, candidates, _amount_of_space), do: {structure, candidates}
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+structure = Recursion.solve(input)
+{total_size, result} = Sum.sum_dir(structure, 0)
+result
+```
+
+## Part 02
+
+```elixir
+total_disk_space = 70_000_000
+needed_unused_space = 30_000_000
+
+unused_space = total_disk_space - total_size
+needed_to_be_deleted_space = needed_unused_space - unused_space
+
+{total, candidates} = Sum.find_dir_to_be_deleted(structure, [], needed_to_be_deleted_space)
+
+candidates |> Enum.min()
+```
