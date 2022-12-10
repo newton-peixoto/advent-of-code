@@ -1,0 +1,91 @@
+# Advent of code day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+p2 =
+  input
+  |> Kino.Input.read()
+
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n"])
+```
+
+## Common
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Recur do
+  def solve(command), do: solve(command, %{}, 1, 1)
+  defp solve([], state, _, _machine_value), do: state
+
+  defp solve(["noop" | commands], state, cycles, machine_value) do
+    updated_state =
+      0..1
+      |> Enum.reduce(state, fn index, state ->
+        Map.put(state, index + cycles, machine_value)
+      end)
+
+    solve(commands, updated_state, cycles + 1, machine_value)
+  end
+
+  defp solve([cur_command | commands], state, cycles, machine_value) do
+    [_, value | _] = String.split(cur_command, " ")
+    value = String.to_integer(value)
+
+    state = Map.put(state, cycles, machine_value)
+    state = Map.put(state, cycles + 1, machine_value)
+    state = Map.put(state, cycles + 2, machine_value + value)
+
+    solve(
+      commands,
+      state,
+      cycles + 2,
+      machine_value + value
+    )
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+map = Recur.solve(input)
+
+[20, 60, 100, 140, 180, 220] |> Enum.map(fn el -> el * map[el] end) |> Enum.sum()
+```
+
+## Part 02
+
+```elixir
+0..(map_size(map) - 2)
+|> Enum.reduce("", fn cycle, render ->
+  sprite_pos = map[cycle + 1]
+  cycle = rem(cycle, 40)
+
+  case {cycle == 0, abs(cycle - sprite_pos) < 2} do
+    {true, true} -> render <> "\n" <> "#"
+    {true, false} -> render <> "\n" <> "."
+    {false, true} -> render <> "#"
+    {false, false} -> render <> "."
+  end
+end)
+|> IO.puts()
+```
