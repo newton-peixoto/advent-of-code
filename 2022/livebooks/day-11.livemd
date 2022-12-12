@@ -1,0 +1,124 @@
+# Advent of code day 11
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+monkeys =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n\n"])
+  |> Enum.map(&String.split(&1, "\n"))
+  |> Enum.reduce(%{}, fn list, monkeys ->
+    ["Monkey " <> id | tail] = list
+    id = String.replace(id, ":", "") |> String.to_integer()
+
+    monkey =
+      Enum.reduce(tail, %{monkey: id, inspected_times: 0}, fn
+        "  Starting items: " <> items, acc ->
+          Map.put(
+            acc,
+            :items,
+            String.split(items, ",", trim: true)
+            |> Enum.map(&String.trim/1)
+            |> Enum.map(&String.to_integer/1)
+          )
+
+        "  Operation: new = " <> expr, acc ->
+          Map.put(acc, :expr, expr)
+
+        "  Test: divisible by " <> divisible, acc ->
+          Map.put(acc, :div_by, String.to_integer(divisible))
+
+        "    If true: throw to monkey " <> id, acc ->
+          Map.put(acc, true, String.to_integer(id))
+
+        "    If false: throw to monkey " <> id, acc ->
+          Map.put(acc, false, String.to_integer(id))
+      end)
+
+    Map.merge(monkeys, %{id => monkey})
+  end)
+
+factor = Enum.map(monkeys, fn {_, monkey} -> monkey.div_by end) |> Enum.product()
+```
+
+```elixir
+do_round = fn monkeys, factor, div? ->
+  0..(map_size(monkeys) - 1)
+  |> Enum.reduce(monkeys, fn id, monkeys ->
+    monkeys[id].items
+    |> Enum.reduce(monkeys, fn item, monkeys ->
+      {new_value, _} = Code.eval_string(monkeys[id].expr, old: item)
+      new_value = new_value |> rem(factor)
+
+      new_value =
+        if div? do
+          (new_value / 3) |> floor()
+        else
+          new_value
+        end
+
+      destiny_monkey_id =
+        if rem(new_value, monkeys[id].div_by) == 0 do
+          monkeys[id][true]
+        else
+          monkeys[id][false]
+        end
+
+      [_removed | remain] = monkeys[id].items
+      inspected_times = monkeys[id].inspected_times + 1
+      destiny_items = monkeys[destiny_monkey_id].items ++ [new_value]
+
+      monkeys = put_in(monkeys, [id, :items], remain)
+      monkeys = put_in(monkeys, [id, :inspected_times], inspected_times)
+      put_in(monkeys, [destiny_monkey_id, :items], destiny_items)
+    end)
+  end)
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+after_20_rounds =
+  1..20
+  |> Enum.reduce(monkeys, fn _, monkeys ->
+    do_round.(monkeys, factor, true)
+  end)
+
+after_20_rounds
+|> Enum.map(fn {_id, monkey} -> monkey.inspected_times end)
+|> Enum.sort(:desc)
+|> Enum.take(2)
+|> Enum.product()
+```
+
+## Part 02
+
+```elixir
+after_10000_rounds =
+  1..10_000
+  |> Enum.reduce(monkeys, fn _, monkeys ->
+    do_round.(monkeys, factor, false)
+  end)
+
+after_10000_rounds
+|> Enum.map(fn {_id, monkey} -> monkey.inspected_times end)
+|> Enum.sort(:desc)
+|> Enum.take(2)
+|> Enum.product()
+```
