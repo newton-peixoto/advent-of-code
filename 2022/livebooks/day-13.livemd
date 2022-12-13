@@ -1,0 +1,85 @@
+# Advent of code day 13
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_2 =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n"], trim: true)
+  |> Enum.map(&Code.eval_string/1)
+  |> Enum.map(&elem(&1, 0))
+  |> Enum.chunk_every(2)
+```
+
+## Common
+
+```elixir
+defmodule Helper do
+  def is_ordered?([], []), do: :none
+  def is_ordered?([_ | _], []), do: false
+  def is_ordered?([], [_ | _]), do: true
+
+  def is_ordered?([a | resta], [b | restb]) do
+    case is_ordered?(a, b) do
+      :none -> is_ordered?(resta, restb)
+      other -> other
+    end
+  end
+
+  def is_ordered?(a, b) when is_integer(a) and is_integer(b) do
+    cond do
+      a < b -> true
+      a > b -> false
+      true -> :none
+    end
+  end
+
+  def is_ordered?(a, b), do: is_ordered?(List.wrap(a), List.wrap(b))
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_2
+|> Enum.with_index(1)
+|> Enum.reduce(
+  0,
+  fn {[left, right | _], index}, acc ->
+    case Helper.is_ordered?(left, right) do
+      true -> acc + index
+      false -> acc
+    end
+  end
+)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+sorted =
+  [[[[2]], [[6]]] | input_2]
+  |> Enum.flat_map(&Function.identity/1)
+  |> Enum.sort(&Helper.is_ordered?/2)
+  |> Enum.with_index(1)
+  |> Enum.filter(fn {el, _index} -> el == [[2]] or el == [[6]] end)
+  |> Enum.map(fn {_, idx} -> idx end)
+  |> Enum.product()
+```
