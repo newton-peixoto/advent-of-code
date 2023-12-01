@@ -1,0 +1,100 @@
+# Advent of code day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split(["\n"])
+|> Enum.map(fn line ->
+  digits = String.replace(line, ~r/[^\d]/, "") |> String.split("", trim: true)
+
+  with [first | _] <- digits,
+       [last | _] <- Enum.reverse(digits) do
+    (first <> last) |> String.to_integer()
+  else
+    [] -> 0
+  end
+end)
+|> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+numbers = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+
+reversed_numbers = Enum.map(numbers, &String.reverse/1)
+
+input
+|> Kino.Input.read()
+|> String.split(["\n"])
+|> Enum.map(fn line ->
+  digits =
+    String.replace(
+      line,
+      numbers,
+      fn
+        "one" -> "1"
+        "two" -> "2"
+        "three" -> "3"
+        "four" -> "4"
+        "five" -> "5"
+        "six" -> "6"
+        "seven" -> "7"
+        "eight" -> "8"
+        "nine" -> "9"
+        x -> x
+      end,
+      global: false
+    )
+    |> String.replace(~r/[^\d]/, "")
+    |> String.split("", trim: true)
+
+  reversed_digits =
+    String.reverse(line)
+    |> String.replace(
+      reversed_numbers,
+      fn
+        "eno" -> "1"
+        "owt" -> "2"
+        "eerht" -> "3"
+        "ruof" -> "4"
+        "evif" -> "5"
+        "xis" -> "6"
+        "neves" -> "7"
+        "thgie" -> "8"
+        "enin" -> "9"
+        x -> x
+      end,
+      global: false
+    )
+    |> IO.inspect()
+    |> String.replace(~r/[^\d]/, "")
+    |> String.split("", trim: true)
+
+  with [first | _] <- digits,
+       [last | _] <- reversed_digits do
+    (first <> last) |> String.to_integer()
+  else
+    [] -> 0
+  end
+end)
+|> Enum.sum()
+```
