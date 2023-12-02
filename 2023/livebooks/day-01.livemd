@@ -1,4 +1,4 @@
-# Advent of code day 05
+# Advent of code day 01
 
 ```elixir
 Mix.install([
@@ -85,7 +85,6 @@ input
       end,
       global: false
     )
-    |> IO.inspect()
     |> String.replace(~r/[^\d]/, "")
     |> String.split("", trim: true)
 

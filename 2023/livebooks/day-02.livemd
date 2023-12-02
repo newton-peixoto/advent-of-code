@@ -1,0 +1,84 @@
+# Advent of code day 02
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split(["\n"])
+|> Enum.map(fn line ->
+  "Game " <> id = String.split(line, ":") |> List.first()
+
+  matches =
+    Regex.scan(~r/\d+\sblue|\d+\sred|\d+\sgreen/, line)
+
+  colors =
+    Enum.reduce(matches, %{}, fn [match], acc ->
+      [num, color] = String.split(match)
+      num_integer = String.to_integer(num)
+
+      Map.update(acc, color, num_integer, fn existing_value ->
+        Enum.max([num_integer, existing_value])
+      end)
+    end)
+
+  {String.to_integer(id), colors}
+end)
+|> Enum.filter(fn {_, colors} ->
+  Map.get(colors, "blue", 0) <= 14 and
+    Map.get(colors, "red", 0) <= 12 and
+    Map.get(colors, "green", 0) <= 13
+end)
+|> Enum.reduce(0, fn {gameID, _colors}, acc ->
+  acc + gameID
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split(["\n"])
+|> Enum.map(fn line ->
+  "Game " <> id = String.split(line, ":") |> List.first()
+
+  matches =
+    Regex.scan(~r/\d+\sblue|\d+\sred|\d+\sgreen/, line)
+
+  colors =
+    Enum.reduce(matches, %{}, fn [match], acc ->
+      [num, color] = String.split(match)
+      num_integer = String.to_integer(num)
+
+      Map.update(acc, color, num_integer, fn existing_value ->
+        Enum.max([num_integer, existing_value])
+      end)
+    end)
+
+  {String.to_integer(id), colors}
+end)
+|> Enum.reduce([], fn {_id, colors}, acc ->
+  {blue, green, red} =
+    {Map.get(colors, "blue", 0), Map.get(colors, "red", 0), Map.get(colors, "green", 0)}
+
+  [blue * green * red | acc]
+end)
+|> Enum.sum()
+```
