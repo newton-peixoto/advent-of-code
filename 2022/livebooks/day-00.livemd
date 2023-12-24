@@ -1,4 +1,4 @@
-# Advent of code day 05
+# Advent of code day 00
 
 ```elixir
 Mix.install([
@@ -9,16 +9,13 @@ Mix.install([
 ## Setup input
 
 ```elixir
-input = Kino.Input.textarea("Please paste your input file:")
+example = Kino.Input.textarea("Please paste your input example:")
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input =
-  input
-  |> Kino.Input.read()
-  |> String.split(["\n"])
+input = Kino.Input.textarea("Please paste your real input:")
 ```
 
 ## Part 01
