@@ -1,0 +1,95 @@
+# Advent of code day 04
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+# shout out to https://www.youtube.com/watch?v=P96I1X_iGlk&list=PL2DxwWG9IY3ZqpSS8BLQyKmqvIPSMjdop&index=3
+# sharing his thoughts specially on part 2
+
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(fn line ->
+  [_, winners, numbers | _] = line |> String.split(~r/(:)|(\|)/, trim: true)
+
+  winners =
+    String.split(winners, " ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> MapSet.new()
+
+  total_wins =
+    String.split(numbers, " ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> Enum.filter(&MapSet.member?(winners, &1))
+    |> Enum.count()
+
+  if total_wins > 0, do: 2 ** (total_wins - 1), else: 0
+end)
+|> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+cards =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+
+cards
+|> Enum.with_index(1)
+|> Enum.map(fn {line, index} ->
+  [_, winners, numbers | _] = line |> String.split(~r/(:)|(\|)/, trim: true)
+
+  winners =
+    String.split(winners, " ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> MapSet.new()
+
+  total_wins =
+    String.split(numbers, " ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> Enum.filter(&MapSet.member?(winners, &1))
+    |> Enum.count()
+
+  {index, total_wins}
+end)
+|> Enum.reduce(
+  # starts acc as card -> number of copies
+  1..length(cards) |> Enum.map(&{&1, 1}) |> Enum.into(%{}),
+  fn {game, wins}, acc ->
+    if wins > 0 do
+      (game + 1)..(game + wins)
+      |> Enum.reduce(acc, fn i, internal_acc ->
+        Map.put(internal_acc, i, internal_acc[i] + internal_acc[game])
+      end)
+    else
+      acc
+    end
+  end
+)
+|> Map.values()
+|> Enum.sum()
+```
