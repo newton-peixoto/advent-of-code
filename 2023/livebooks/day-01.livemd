@@ -6,7 +6,11 @@ Mix.install([
 ])
 ```
 
-## Setup input
+## Helpers
+
+```elixir
+example = Kino.Input.textarea("Please paste your input file:")
+```
 
 ```elixir
 input = Kino.Input.textarea("Please paste your input file:")
@@ -38,62 +42,34 @@ end)
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-numbers = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+defmodule Part2 do
+  def solve(string) do
+    concatenated = solve(string, "")
+    last = concatenated |> String.first()
+    first = concatenated |> String.last()
 
-reversed_numbers = Enum.map(numbers, &String.reverse/1)
+    String.to_integer(first <> last)
+  end
+
+  def solve("", acc), do: acc
+  def solve(<<x, rest::binary>>, acc) when x in ?1..?9, do: solve(rest, <<x>> <> acc)
+
+  def solve(<<"one", rest::binary>>, acc), do: solve("e" <> rest, "1" <> acc)
+  def solve(<<"two", rest::binary>>, acc), do: solve("o" <> rest, "2" <> acc)
+  def solve(<<"three", rest::binary>>, acc), do: solve("e" <> rest, "3" <> acc)
+  def solve(<<"four", rest::binary>>, acc), do: solve("r" <> rest, "4" <> acc)
+  def solve(<<"five", rest::binary>>, acc), do: solve("e" <> rest, "5" <> acc)
+  def solve(<<"six", rest::binary>>, acc), do: solve("x" <> rest, "6" <> acc)
+  def solve(<<"seven", rest::binary>>, acc), do: solve("n" <> rest, "7" <> acc)
+  def solve(<<"eight", rest::binary>>, acc), do: solve("t" <> rest, "8" <> acc)
+  def solve(<<"nine", rest::binary>>, acc), do: solve("e" <> rest, "9" <> acc)
+
+  def solve(<<_, rest::binary>>, acc), do: solve(rest, acc)
+end
 
 input
 |> Kino.Input.read()
-|> String.split(["\n"])
-|> Enum.map(fn line ->
-  digits =
-    String.replace(
-      line,
-      numbers,
-      fn
-        "one" -> "1"
-        "two" -> "2"
-        "three" -> "3"
-        "four" -> "4"
-        "five" -> "5"
-        "six" -> "6"
-        "seven" -> "7"
-        "eight" -> "8"
-        "nine" -> "9"
-        x -> x
-      end,
-      global: false
-    )
-    |> String.replace(~r/[^\d]/, "")
-    |> String.split("", trim: true)
-
-  reversed_digits =
-    String.reverse(line)
-    |> String.replace(
-      reversed_numbers,
-      fn
-        "eno" -> "1"
-        "owt" -> "2"
-        "eerht" -> "3"
-        "ruof" -> "4"
-        "evif" -> "5"
-        "xis" -> "6"
-        "neves" -> "7"
-        "thgie" -> "8"
-        "enin" -> "9"
-        x -> x
-      end,
-      global: false
-    )
-    |> String.replace(~r/[^\d]/, "")
-    |> String.split("", trim: true)
-
-  with [first | _] <- digits,
-       [last | _] <- reversed_digits do
-    (first <> last) |> String.to_integer()
-  else
-    [] -> 0
-  end
-end)
+|> String.split("\n", trim: true)
+|> Enum.map(&Part2.solve/1)
 |> Enum.sum()
 ```
