@@ -1,0 +1,68 @@
+# Advent of code day 00
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split(["\n", " "], trim: true)
+|> Enum.chunk_every(2)
+|> Enum.map(fn [dir, amount] ->
+  {String.to_atom(dir), String.to_integer(amount)}
+end)
+|> Enum.reduce(%{vertical: 0, horizontal: 0}, fn el, acc ->
+  case el do
+    {:forward, amount} -> %{acc | horizontal: acc.horizontal + amount}
+    {:down, amount} -> %{acc | vertical: acc.vertical + amount}
+    {:up, amount} -> %{acc | vertical: acc.vertical - amount}
+  end
+end)
+|> then(fn state -> state.vertical * state.horizontal end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split(["\n", " "], trim: true)
+|> Enum.chunk_every(2)
+|> Enum.map(fn [dir, amount] ->
+  {String.to_atom(dir), String.to_integer(amount)}
+end)
+|> Enum.reduce(%{depth: 0, horizontal: 0, aim: 0}, fn el, acc ->
+  case el do
+    {:forward, amount} ->
+      %{acc | horizontal: acc.horizontal + amount, depth: acc.depth + acc.aim * amount}
+
+    {:down, amount} ->
+      %{acc | aim: acc.aim + amount}
+
+    {:up, amount} ->
+      %{acc | aim: acc.aim - amount}
+  end
+end)
+|> then(fn state -> state.depth * state.horizontal end)
+```
