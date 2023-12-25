@@ -1,0 +1,158 @@
+# Advent of code day 04
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Helpers
+
+```elixir
+# Grid Helper to the following grid format 
+#
+# [
+#   [%{number: 2, marked: false}, %{number: 1, marked: false}],
+#   [%{number: 4, marked: false}, %{number: 3, marked: false}]
+# ]
+#
+defmodule GridHelper do
+  def mark_number(grid, number) do
+    Enum.map(grid, fn row ->
+      Enum.map(row, fn element ->
+        if element.number == number do
+          %{element | marked: true}
+        else
+          element
+        end
+      end)
+    end)
+  end
+
+  def won?(grid) do
+    has_row_with_all_marked_true(grid) or has_col_with_all_marked_true(grid)
+  end
+
+  def get_all_unmarked_numbers(grid) do
+    Enum.map(grid, fn row ->
+      Enum.filter(row, fn el -> el.marked == false end)
+      |> Enum.map(fn %{number: number} -> number end)
+    end)
+  end
+
+  defp has_row_with_all_marked_true(grid) do
+    Enum.any?(grid, fn row -> all_marked_true(row) end)
+  end
+
+  defp has_col_with_all_marked_true(grid) do
+    transposed_grid = transpose(grid)
+    Enum.any?(transposed_grid, fn col -> all_marked_true(col) end)
+  end
+
+  defp all_marked_true(row_or_col) do
+    Enum.all?(row_or_col, fn
+      %{marked: true} -> true
+      _ -> false
+    end)
+  end
+
+  defp transpose(grid), do: Enum.zip_with(grid, &Function.identity/1)
+end
+```
+
+```elixir
+[numbers | rest] = input |> Kino.Input.read() |> String.split(["\n", "\n\n"], trim: true)
+
+numbers = numbers |> String.split(",", trim: true) |> Enum.map(&String.to_integer/1)
+
+grids =
+  rest
+  |> Enum.chunk_every(5)
+  |> Enum.map(fn el ->
+    el
+    |> Enum.map(
+      &(String.split(&1, " ", trim: true)
+        |> Enum.map(fn el ->
+          number = el |> String.to_integer()
+
+          %{number: number, marked: false}
+        end))
+    )
+  end)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{winner_grid, winning_number} =
+  Enum.reduce_while(numbers, grids, fn number, acc ->
+    ## mark the number 
+    ## check if one grid has won, 
+    ## if it has returns it {grid, winning_number}
+    grs = Enum.map(acc, &GridHelper.mark_number(&1, number))
+
+    winner =
+      Enum.find_value(grs, fn grid ->
+        if GridHelper.won?(grid), do: grid, else: nil
+      end)
+
+    if winner == nil do
+      {:cont, grs}
+    else
+      {:halt, {winner, number}}
+    end
+  end)
+
+winner_grid
+|> GridHelper.get_all_unmarked_numbers()
+|> List.flatten()
+|> Enum.sum()
+|> Kernel.*(winning_number)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{last_winner_grid, winning_number} =
+  Enum.reduce_while(numbers, grids, fn number, acc ->
+    ## mark the number 
+    ## check if one grid has won, 
+    ## if it has removes from grids until there is nothing left
+    grs = Enum.map(acc, &GridHelper.mark_number(&1, number))
+
+    last_winner =
+      Enum.find_value(grs, fn grid ->
+        if GridHelper.won?(grid), do: grid, else: nil
+      end)
+
+    grs = Enum.filter(grs, fn grid -> not GridHelper.won?(grid) end)
+
+    if not Enum.empty?(grs) do
+      {:cont, grs}
+    else
+      {:halt, {last_winner, number}}
+    end
+  end)
+
+last_winner_grid
+|> GridHelper.get_all_unmarked_numbers()
+|> List.flatten()
+|> Enum.sum()
+|> Kernel.*(winning_number)
+```
