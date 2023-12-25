@@ -1,0 +1,127 @@
+# Advent of code day 03
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Helpers
+
+```elixir
+defmodule CharFreq do
+  def most_repeated_char_at_index(strings, index) when is_list(strings) and index >= 0 do
+    characters_at_index = Enum.map(strings, &String.at(&1, index))
+    char_counts = Enum.frequencies(characters_at_index)
+
+    case Enum.max_by(char_counts, fn {_char, count} -> count end, &>/2) do
+      {char, count} -> {char, count}
+    end
+  end
+
+  def less_repeated_char_at_index(strings, index) when is_list(strings) and index >= 0 do
+    characters_at_index = Enum.map(strings, &String.at(&1, index))
+    char_counts = Enum.frequencies(characters_at_index)
+
+    case Enum.min_by(char_counts, fn {_char, count} -> count end) do
+      {char, count} -> {char, count}
+    end
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+strings =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+
+most =
+  for index <- 0..(String.length(Enum.at(strings, 0)) - 1) do
+    {char, _count} = CharFreq.most_repeated_char_at_index(strings, index)
+    char
+  end
+
+less =
+  for index <- 0..(String.length(Enum.at(strings, 0)) - 1) do
+    {char, _count} = CharFreq.less_repeated_char_at_index(strings, index)
+    char
+  end
+
+most = most |> Enum.join("") |> String.to_integer(2)
+less = less |> Enum.join("") |> String.to_integer(2)
+most * less
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+strings =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+
+most =
+  for index <- 0..(String.length(Enum.at(strings, 0)) - 1) do
+    {char, _count} = CharFreq.most_repeated_char_at_index(strings, index)
+    char
+  end
+
+less =
+  for index <- 0..(String.length(Enum.at(strings, 0)) - 1) do
+    {char, _count} = CharFreq.less_repeated_char_at_index(strings, index)
+    char
+  end
+
+oxygen =
+  Enum.reduce_while(most |> Enum.with_index(), strings, fn {_char, idx}, acc ->
+    {c, _count} = CharFreq.most_repeated_char_at_index(acc, idx)
+
+    if length(acc) == 1 do
+      {:halt, acc}
+    else
+      {:cont,
+       Enum.filter(acc, fn el ->
+         String.at(el, idx) == c
+       end)}
+    end
+  end)
+  |> List.first()
+  |> String.to_integer(2)
+
+co2 =
+  Enum.reduce_while(most |> Enum.with_index(), strings, fn {_char, idx}, acc ->
+    {c, _count} = CharFreq.less_repeated_char_at_index(acc, idx)
+
+    if length(acc) == 1 do
+      {:halt, acc}
+    else
+      {:cont,
+       Enum.filter(acc, fn el ->
+         String.at(el, idx) == c
+       end)}
+    end
+  end)
+  |> List.first()
+  |> String.to_integer(2)
+
+co2 * oxygen
+```
