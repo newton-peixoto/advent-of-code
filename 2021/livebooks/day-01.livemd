@@ -1,0 +1,53 @@
+# Advent of code day 01
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.reduce(%{prev: false, inc_total: 0}, fn el, acc ->
+  if acc.prev != false and el > acc.prev,
+    do: %{acc | inc_total: acc.inc_total + 1, prev: el},
+    else: %{acc | prev: el}
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.chunk_every(3, 1, :discard)
+|> Enum.map(&Enum.sum/1)
+|> Enum.reduce(%{prev: false, inc_total: 0}, fn el, acc ->
+  if acc.prev != false and el > acc.prev,
+    do: %{acc | inc_total: acc.inc_total + 1, prev: el},
+    else: %{acc | prev: el}
+end)
+```
