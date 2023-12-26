@@ -1,0 +1,141 @@
+# Advent of code day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Helpers
+
+```elixir
+# is there a better way to match diagonal values? 
+defmodule Coord do
+  # vertical
+  def extrapolate({x, y1}, {x, y2}) do
+    y1..y2
+    |> Enum.map(fn y ->
+      {x, y}
+    end)
+  end
+
+  # horizontal
+  def extrapolate({x1, y}, {x2, y}) do
+    x1..x2
+    |> Enum.map(fn x ->
+      {x, y}
+    end)
+  end
+
+  # 45 degree diagonal
+
+  def extrapolate({x1, y1} = from, {x2, y2}) when x1 > x2 and y1 > y2 do
+    (x1 - 1)..x2
+    |> Enum.reduce([from], fn _el, [{from_x, from_y} | _rest] = acc ->
+      new_point = {from_x - 1, from_y - 1}
+
+      [new_point | acc]
+    end)
+    |> Enum.reverse()
+  end
+
+  def extrapolate({x1, y1} = from, {x2, y2}) when x1 < x2 and y1 < y2 do
+    x1..(x2 - 1)
+    |> Enum.reduce([from], fn _el, [{from_x, from_y} | _rest] = acc ->
+      new_point = {from_x + 1, from_y + 1}
+
+      [new_point | acc]
+    end)
+    |> Enum.reverse()
+  end
+
+  def extrapolate({x1, y1} = from, {x2, y2}) when x1 >= x2 and y1 <= y2 do
+    (x1 - 1)..x2
+    |> Enum.reduce([from], fn _el, [{from_x, from_y} | _rest] = acc ->
+      new_point = {from_x - 1, from_y + 1}
+
+      [new_point | acc]
+    end)
+    |> Enum.reverse()
+  end
+
+  def extrapolate({x1, y1} = from, {x2, y2}) when x1 <= x2 and y1 >= y2 do
+    x1..(x2 - 1)
+    |> Enum.reduce([from], fn _el, [{from_x, from_y} | _rest] = acc ->
+      new_point = {from_x + 1, from_y - 1}
+
+      [new_point | acc]
+    end)
+    |> Enum.reverse()
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+coords =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n", " -> ", ","], trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(4)
+  |> Enum.map(fn [x1, y1, x2, y2] ->
+    {{x1, y1}, {x2, y2}}
+  end)
+  |> Enum.filter(fn {{x1, y1}, {x2, y2}} ->
+    x1 == x2 or y1 == y2
+  end)
+  |> Enum.map(fn {from, to} ->
+    Coord.extrapolate(from, to)
+  end)
+  |> List.flatten()
+  |> Enum.frequencies()
+  |> Enum.filter(fn {_, value} -> value >= 2 end)
+  |> Enum.count()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+# consider diagonal 
+
+coords =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n", " -> ", ","], trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(4)
+  |> Enum.map(fn [x1, y1, x2, y2] ->
+    {{x1, y1}, {x2, y2}}
+  end)
+  |> Enum.filter(fn {{x1, y1}, {x2, y2}} ->
+    horizontal_or_vertical = x1 == x2 or y1 == y2
+    diagonal_aligned = abs(x1 - x2) == abs(y1 - y2)
+
+    diagonal_aligned or horizontal_or_vertical
+  end)
+  |> Enum.map(fn {from, to} ->
+    Coord.extrapolate(from, to)
+  end)
+  |> List.flatten()
+  |> Enum.frequencies()
+  |> Enum.filter(fn {_, value} -> value >= 2 end)
+  |> Enum.count()
+```
