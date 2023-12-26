@@ -1,0 +1,61 @@
+# Advent of code day 00
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Setup
+
+```elixir
+numbers =
+  example
+  |> Kino.Input.read()
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+
+{min, max} = Enum.min_max(numbers)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+min..max
+|> Enum.map(fn position ->
+  Enum.reduce(numbers, 0, fn el, total_fuel ->
+    abs(position - el)
+    |> Kernel.+(total_fuel)
+  end)
+end)
+|> Enum.min()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+min..max
+|> Enum.map(fn position ->
+  Enum.reduce(numbers, 0, fn el, total_fuel ->
+    diff = abs(position - el)
+    div(diff * (diff + 1), 2) + total_fuel
+  end)
+end)
+|> Enum.min()
+```

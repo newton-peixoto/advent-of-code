@@ -1,0 +1,81 @@
+# Advent of code day 09
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Helpers
+
+```elixir
+defmodule Recursion do
+  def part1(list) do
+    if(Enum.all?(list, fn x -> x == 0 end)) do
+      0
+    else
+      diffs = get_diffs(list)
+      List.last(list) + part1(diffs)
+    end
+  end
+
+  def part2(list) do
+    if(Enum.all?(list, fn x -> x == 0 end)) do
+      0
+    else
+      diffs = get_diffs(list)
+      List.first(list) - part2(diffs)
+    end
+  end
+
+  defp get_diffs(list) do
+    list
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [a, b] -> b - a end)
+  end
+end
+```
+
+```elixir
+formated_input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(
+    &(&1
+      |> String.split(" ", trim: true)
+      |> Enum.map(fn e -> String.to_integer(e) end))
+  )
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+formated_input
+|> Enum.map(fn list -> Recursion.part1(list) end)
+|> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+formated_input
+|> Enum.map(fn list -> Recursion.part2(list) end)
+|> Enum.sum()
+```
