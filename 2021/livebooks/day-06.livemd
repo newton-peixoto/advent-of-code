@@ -1,0 +1,81 @@
+# Advent of code day 06
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Helpers
+
+```elixir
+
+```
+
+## Part 01
+
+```elixir
+## BRUTE FORCE
+
+fishes =
+  example
+  |> Kino.Input.read()
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+
+1..80
+|> Enum.reduce(fishes, fn _el, acc ->
+  ## count zeros 
+  zeros = Enum.count(acc, fn e -> e == 0 end)
+  eights = if zeros == 0, do: [], else: Enum.map(1..zeros, fn _eight -> 8 end)
+  ## sub -1 from every fish 
+  acc = Enum.map(acc, fn n -> if n == 0, do: 6, else: n - 1 end)
+  ## add eights 
+
+  acc ++ eights
+end)
+|> Enum.count()
+```
+
+## Part 02
+
+```elixir
+# OPTIMIZED USING HASH MAPPURU
+
+fishes =
+  input
+  |> Kino.Input.read()
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.frequencies()
+
+1..256
+|> Enum.reduce(fishes, fn _el, acc ->
+  zeros = Map.get(acc, 0, 0)
+
+  outside = acc
+
+  acc =
+    7..0
+    |> Enum.reduce(acc, fn key, acc ->
+      Map.put(acc, key, Map.get(outside, key + 1, 0))
+    end)
+
+  acc = Map.put(acc, 8, zeros)
+  Map.put(acc, 6, Map.get(outside, 7, 0) + zeros)
+end)
+|> Map.values()
+|> Enum.sum()
+```
