@@ -1,0 +1,127 @@
+# Advent of code day 09
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Basin do
+  def basin(point, grid) do
+    basin(MapSet.new(), point, grid)
+  end
+
+  defp basin(set, {x, y} = point, grid) do
+    if grid[point] in [nil, 9] or point in set do
+      set
+    else
+      set
+      |> MapSet.put(point)
+      |> basin({x + 1, y}, grid)
+      |> basin({x - 1, y}, grid)
+      |> basin({x, y + 1}, grid)
+      |> basin({x, y - 1}, grid)
+    end
+  end
+end
+```
+
+## Setup
+
+```elixir
+grid =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split("", trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple()
+  end)
+  |> List.to_tuple()
+
+rows = grid |> tuple_size()
+cols = grid |> elem(0) |> tuple_size()
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+values =
+  for x <- 0..(rows - 1),
+      y <- 0..(cols - 1) do
+    current = elem(grid, x) |> elem(y)
+
+    left = if x == 0, do: 10, else: elem(grid, x - 1) |> elem(y)
+    right = if x == rows - 1, do: 10, else: elem(grid, x + 1) |> elem(y)
+    up = if y == 0, do: 10, else: elem(grid, x) |> elem(y - 1)
+    down = if y == cols - 1, do: 10, else: elem(grid, x) |> elem(y + 1)
+
+    if left > current and right > current and up > current and down > current do
+      current
+    else
+      nil
+    end
+  end
+  |> Enum.filter(&Kernel.!=(&1, nil))
+  |> Enum.map(&(&1 + 1))
+  |> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+map_of_points =
+  for x <- 0..(rows - 1),
+      y <- 0..(cols - 1),
+      into: %{} do
+    current = elem(grid, x) |> elem(y)
+
+    {{x, y}, current}
+  end
+
+lowest_points =
+  for x <- 0..(rows - 1),
+      y <- 0..(cols - 1) do
+    current = elem(grid, x) |> elem(y)
+
+    left = if x == 0, do: 10, else: elem(grid, x - 1) |> elem(y)
+    right = if x == rows - 1, do: 10, else: elem(grid, x + 1) |> elem(y)
+    up = if y == 0, do: 10, else: elem(grid, x) |> elem(y - 1)
+    down = if y == cols - 1, do: 10, else: elem(grid, x) |> elem(y + 1)
+
+    if left > current and right > current and up > current and down > current do
+      {x, y}
+    else
+      nil
+    end
+  end
+  |> Enum.filter(&Kernel.!=(&1, nil))
+
+lowest_points
+|> Enum.map(fn point ->
+  Basin.basin(point, map_of_points)
+end)
+|> Enum.map(&MapSet.size/1)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.product()
+```
