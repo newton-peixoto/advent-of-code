@@ -1,0 +1,62 @@
+# day 06
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.12.2"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("paste")
+```
+
+```elixir
+example = Kino.Input.textarea("paste")
+```
+
+## Helper
+
+```elixir
+
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+  |> Enum.reduce(0, fn people, acc ->
+    Regex.scan(~r/[a-z]/, people)
+    |> List.flatten()
+    |> Enum.uniq()
+    |> Enum.count()
+    |> Kernel.+(acc)
+  end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+  |> Enum.reduce(0, fn people, acc ->
+    people_count = people |> String.split("\n", trim: true) |> Enum.count()
+
+    Regex.scan(~r/[a-z]/, people)
+    |> List.flatten()
+    |> Enum.frequencies()
+    |> Enum.filter(fn {_, value} -> value == people_count end)
+    |> Enum.count()
+    |> Kernel.+(acc)
+  end)
+```

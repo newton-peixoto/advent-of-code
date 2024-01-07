@@ -1,0 +1,116 @@
+# day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.12.2"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("paste")
+```
+
+```elixir
+example = Kino.Input.textarea("paste")
+```
+
+## Helper
+
+```elixir
+defmodule BinarySearch do
+  def seat_code(ticket) do
+    row = binary_part(ticket, 0, 7)
+    col = binary_part(ticket, 7, 3)
+    get_row(row) * 8 + get_col(col)
+  end
+
+  defp get_row(ticket) do
+    binary_search(
+      String.to_charlist(ticket),
+      0,
+      127
+    )
+  end
+
+  defp get_col(ticket) do
+    binary_search(
+      String.to_charlist(ticket),
+      0,
+      7,
+      :col
+    )
+  end
+
+  # ROWS
+  defp binary_search([], start, _final), do: start
+
+  defp binary_search([?F | rest], start, final) do
+    binary_search(rest, start, get_mid_point(start, final) - 1)
+  end
+
+  defp binary_search([?B | rest], start, final) do
+    binary_search(rest, get_mid_point(start, final) + 1, final)
+  end
+
+  # COLUMNS
+  defp binary_search([], _, final, :col), do: final
+
+  defp binary_search([?R | rest], start, final, :col) do
+    binary_search(rest, get_mid_point(start, final), final, :col)
+  end
+
+  defp binary_search([?L | rest], start, final, :col) do
+    binary_search(rest, start, get_mid_point(start, final), :col)
+  end
+
+  # HELPERS
+  defp get_mid_point(start, final) do
+    div(final + start, 2)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.reduce(0, fn ticket, acc ->
+    seat_code = BinarySearch.seat_code(ticket)
+
+    max(seat_code, acc)
+  end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+seats =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn ticket ->
+    BinarySearch.seat_code(ticket)
+  end)
+
+possible_tickets =
+  for row <- 1..126,
+      col <- 1..6,
+      (row * 8 + col) not in seats do
+    row * 8 + col
+  end
+
+possible_tickets
+|> Enum.chunk_every(3, 1, :discard)
+|> Enum.filter(fn [a, b, c] -> a + 1 != b && b + 1 != c end)
+|> hd()
+|> then(fn [_, seat, _] -> seat end)
+```

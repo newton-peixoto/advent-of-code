@@ -1,0 +1,98 @@
+# Advent of code day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Setup
+
+```elixir
+
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+scores = %{
+  ")" => 3,
+  "]" => 57,
+  "}" => 1197,
+  ">" => 25137
+}
+
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split(&1, "", trim: true))
+|> Enum.map(fn line ->
+  Enum.reduce_while(line, [], fn el, acc ->
+    case {el, acc} do
+      {")", ["(" | rest]} -> {:cont, rest}
+      {"]", ["[" | rest]} -> {:cont, rest}
+      {"}", ["{" | rest]} -> {:cont, rest}
+      {">", ["<" | rest]} -> {:cont, rest}
+      {open, acc} when open in ["(", "{", "[", "<"] -> {:cont, [open | acc]}
+      {mismatch, _acc} -> {:halt, mismatch}
+    end
+  end)
+end)
+|> Enum.filter(&is_binary/1)
+|> Enum.map(&Map.get(scores, &1))
+|> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+scores_to_complete = %{
+  "(" => 1,
+  "[" => 2,
+  "{" => 3,
+  "<" => 4
+}
+
+sorted_values =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.map(fn line ->
+    Enum.reduce_while(line, [], fn el, stack ->
+      case {el, stack} do
+        {")", ["(" | rest]} -> {:cont, rest}
+        {"]", ["[" | rest]} -> {:cont, rest}
+        {"}", ["{" | rest]} -> {:cont, rest}
+        {">", ["<" | rest]} -> {:cont, rest}
+        {open, stack} when open in ["(", "{", "[", "<"] -> {:cont, [open | stack]}
+        {mismatch, _stack} -> {:halt, mismatch}
+      end
+    end)
+  end)
+  |> Enum.reject(&is_binary/1)
+  |> Enum.map(fn line ->
+    Enum.reduce(line, 0, fn el, total ->
+      total * 5 + Map.get(scores_to_complete, el)
+    end)
+  end)
+  |> Enum.sort(:desc)
+
+Enum.at(sorted_values, div(Enum.count(sorted_values), 2))
+```

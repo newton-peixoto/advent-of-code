@@ -1,0 +1,118 @@
+# day 04
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.12.2"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("paste")
+```
+
+```elixir
+example = Kino.Input.textarea("paste")
+```
+
+## Part 01
+
+```elixir
+defmodule PassportValidator do
+  def is_valid?(passport) do
+    validate_fields(Map.keys(passport)) and
+      [
+        validate_byr(passport.byr),
+        validate_iyr(passport.iyr),
+        validate_eyr(passport.eyr),
+        validate_hgt(passport.hgt),
+        validate_hcl(passport.hcl),
+        validate_ecl(passport.ecl),
+        validate_pid(passport.pid)
+      ]
+      |> Enum.all?()
+  end
+
+  defp validate_fields(keys) do
+    ([
+       :hcl,
+       :pid,
+       :ecl,
+       :hgt,
+       :eyr,
+       :iyr,
+       :byr
+     ] -- keys)
+    |> Enum.empty?()
+  end
+
+  defp validate_pid(pid) do
+    Regex.match?(~r/^[0-9]{9}$/, pid)
+  end
+
+  defp validate_ecl(ecl) do
+    Regex.match?(~r/amb|blu|brn|gry|grn|hzl|oth/, ecl)
+  end
+
+  defp validate_hcl(hcl) do
+    Regex.match?(~r/#([0-9]|[a-f]){6}$/, hcl)
+  end
+
+  defp validate_hgt(hgt) do
+    case String.split(hgt, ~r/(in|cm)/, include_captures: true, trim: true) do
+      [number, "cm"] -> String.to_integer(number) >= 150 and String.to_integer(number) <= 193
+      [number, "in"] -> String.to_integer(number) >= 59 and String.to_integer(number) <= 76
+      _ -> false
+    end
+  end
+
+  defp validate_eyr(eyr) do
+    String.to_integer(eyr) >= 2020 and String.to_integer(eyr) <= 2030
+  end
+
+  defp validate_iyr(iyr) do
+    String.to_integer(iyr) >= 2010 and String.to_integer(iyr) <= 2020
+  end
+
+  defp validate_byr(byr) do
+    String.to_integer(byr) >= 1920 and String.to_integer(byr) <= 2002
+  end
+end
+```
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+  |> Enum.filter(fn passport ->
+    Regex.scan(~r/(byr|iyr|eyr|hgt|hcl|ecl|pid)/, passport) |> Enum.count() == 7
+  end)
+  |> Enum.count()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n\n", trim: true)
+|> Enum.map(fn passport ->
+  passport
+  |> String.split("\n")
+  |> Enum.reduce(%{}, fn line, acc ->
+    String.split(line, " ", trim: true)
+    |> Enum.reduce(acc, fn fields, acc ->
+      [key, value] = String.split(fields, ":", trim: true)
+      Map.put(acc, String.to_atom(key), value)
+    end)
+  end)
+end)
+|> Enum.filter(fn passport ->
+  PassportValidator.is_valid?(passport)
+end)
+|> Enum.count()
+```

@@ -1,0 +1,78 @@
+# day 03
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.12.2"}
+])
+```
+
+## Section
+
+```elixir
+example = Kino.Input.textarea("paste")
+```
+
+```elixir
+defmodule Helper do
+  def solver(total_lines, total_cols, grid, {right, down}) do
+    Enum.reduce_while(
+      0..total_lines,
+      %{
+        col: 0,
+        row: 0,
+        grid: grid,
+        trees: 0
+      },
+      fn _,
+         %{
+           col: col,
+           row: row,
+           grid: grid,
+           trees: trees
+         } = acc ->
+        cond do
+          row >= total_lines or col >= total_cols ->
+            {:halt, trees}
+
+          elem(grid, row) |> elem(col) == "#" ->
+            {:cont, %{acc | trees: trees + 1, col: col + right, row: row + down}}
+
+          true ->
+            {:cont, %{acc | col: col + right, row: row + down}}
+        end
+      end
+    )
+  end
+end
+```
+
+## Part 01
+
+```elixir
+lines =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+
+grid =
+  Enum.map(lines, fn line ->
+    String.duplicate(line, Enum.count(lines))
+    |> String.split("", trim: true)
+    |> List.to_tuple()
+  end)
+  |> List.to_tuple()
+
+total_cols = tuple_size(elem(grid, 0))
+total_lines = lines |> Enum.count()
+Helper.solver(total_lines, total_cols, grid, {3, 1})
+```
+
+## Part 02
+
+```elixir
+slopes = [{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}]
+
+Enum.reduce(slopes, 1, fn slope, acc ->
+  Helper.solver(total_lines, total_cols, grid, slope) * acc
+end)
+```
