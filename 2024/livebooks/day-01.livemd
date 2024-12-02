@@ -1,0 +1,72 @@
+# Advent of code day 01
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Solver do
+  def part01(left, right) do
+    do_part01(left, right, 0)
+  end
+
+  def do_part01([], [], acc), do: acc
+
+  def do_part01([l | l_tail], [r | r_tail], acc) do
+    acc = abs(l - r) + acc
+    do_part01(l_tail, r_tail, acc)
+  end
+
+  def part02(left, right) do
+    right = Enum.frequencies(right)
+
+    Enum.reduce(left, 0, fn el, acc ->
+      Map.get(right, el, 0) * el + acc
+    end)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{left, right} = 
+example
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.reduce({[], []}, fn  el, {left, right} ->
+  [l, r | _ ]  = String.split(el, "  ")
+  {[String.to_integer(String.trim(l)) | left], [  String.to_integer(String.trim(r)) | right]}
+  end )
+
+left = Enum.sort(left)
+right = Enum.sort(right)
+
+
+Solver.part01(left, right)
+
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Solver.part02(left, right)
+```
