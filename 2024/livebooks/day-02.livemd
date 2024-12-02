@@ -1,0 +1,117 @@
+# Advent of code day 02
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Solver do
+  def part01(reports) do
+    Enum.reduce(reports, 0, fn el, acc ->
+      case is_safe?(el) do
+        :safe -> acc + 1
+        _ -> acc
+      end
+    end)
+  end
+
+  def part02(reports) do
+    Enum.reduce(reports, 0, fn el, acc ->
+      case retryable_is_safe?(el) do
+        :safe ->
+          acc + 1
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  defp retryable_is_safe?(report) do
+    Enum.reduce_while(-1..(length(report) - 1), %{is_first?: true}, fn el, _acc ->
+      is_safe? =
+        cond do
+          el == -1 ->
+            is_safe?(report)
+
+          el ->
+            is_safe?(List.delete_at(report, el))
+        end
+
+      case is_safe? do
+        :safe -> {:halt, :safe}
+        _ -> {:cont, :unsafe}
+      end
+    end)
+  end
+
+  defp is_safe?(el) do
+    is_safe?(el, %{order: nil, is_safe?: nil})
+  end
+
+  defp is_safe?([_ | []], _state), do: :safe
+
+  defp is_safe?([a, b | rest], %{order: nil} = _state)
+       when a > b and abs(a - b) >= 1 and abs(a - b) <= 3 do
+    is_safe?([b | rest], %{order: :desc, is_safe?: true})
+  end
+
+  defp is_safe?([a, b | rest], %{order: nil} = _state)
+       when a < b and abs(a - b) >= 1 and abs(a - b) <= 3 do
+    is_safe?([b | rest], %{order: :asc, is_safe?: true})
+  end
+
+  defp is_safe?([a, b | rest], %{order: :desc} = _map)
+       when a > b and abs(a - b) >= 1 and abs(a - b) <= 3 do
+    is_safe?([b | rest], %{order: :desc, is_safe?: true})
+  end
+
+  defp is_safe?([a, b | rest], %{order: :asc} = _state)
+       when a < b and abs(a - b) >= 1 and abs(a - b) <= 3 do
+    is_safe?([b | rest], %{order: :asc, is_safe?: true})
+  end
+
+  defp is_safe?(_list, _state), do: :unsafe
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn el ->
+    String.split(el, " ")
+    |> Enum.map(fn e -> String.to_integer(e) end)
+  end)
+
+parsed
+|> Solver.part01()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed
+|> Solver.part02()
+```
