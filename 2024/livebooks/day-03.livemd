@@ -1,0 +1,114 @@
+# Advent of code day 03
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+```elixir
+defmodule Solver do
+  def parse(line) do
+    parse(line, [])
+  end
+
+  for i <- [8, 16, 24], j <- [8, 16, 24] do
+    defp parse(
+           <<"mul("::binary, d1::integer-size(unquote(i)), ","::binary,
+             d2::integer-size(unquote(j)), ")"::binary, rest::binary>>,
+           state
+         ) do
+      new_value =
+        String.to_integer(:binary.encode_unsigned(d1)) *
+          String.to_integer(:binary.encode_unsigned(d2))
+
+      parse(rest, [new_value | state])
+    end
+  end
+
+  ## end 
+  defp parse(<<_e::binary-size(1), rest::binary>>, state), do: parse(rest, state)
+  defp parse(<<>>, state), do: Enum.sum(state)
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> Solver.parse
+```
+
+## Part 02
+
+```elixir
+defmodule Solver2 do
+  def parse(line) do
+    parse(line, [])
+  end
+
+  defp parse(<<"don't()"::binary, rest::binary>>, [:dont | _] = state) do
+    parse(rest, state)
+  end
+
+  defp parse(<<"don't()"::binary, rest::binary>>, state) do
+    state = [:dont | state]
+    parse(rest, state)
+  end
+
+  defp parse(<<"do()"::binary, rest::binary>>, [:dont | tail ] = _state) do
+    state =  tail
+    parse(rest, state)
+  end
+
+  defp parse(<<_e::binary-size(1), rest::binary>>, [:dont | _tail] = state) do
+    parse(rest, state)
+  end
+
+  for i <- [8, 16, 24], j <- [8, 16, 24] do
+    defp parse(
+           <<"mul("::binary, d1::integer-size(unquote(i)), ","::binary,
+             d2::integer-size(unquote(j)), ")"::binary, rest::binary>>,
+           state
+         ) do
+      new_value =
+        String.to_integer(:binary.encode_unsigned(d1)) *
+          String.to_integer(:binary.encode_unsigned(d2))
+      parse(rest, [new_value | state])
+    end
+  end
+
+  ## end 
+  defp parse(<<_e::binary-size(1), rest::binary>>, state) do
+    parse(rest, state)
+  end
+
+  defp parse(<<>>, [:dont, tail ]), do:  Enum.sum(tail)
+  defp parse(<<>>, state), do:  Enum.sum(state)
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> Solver2.parse()
+```
