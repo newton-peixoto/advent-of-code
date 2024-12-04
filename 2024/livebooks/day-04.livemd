@@ -1,0 +1,142 @@
+# Advent of code day 04
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+```elixir
+defmodule Helper do
+  def xmas?({x, y} = point, grid) do
+    down =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x, y + 1}, ".") <>
+        Map.get(grid, {x, y + 2}, ".") <>
+        Map.get(grid, {x, y + 3}, ".")
+
+    up =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x, y - 1}, ".") <>
+        Map.get(grid, {x, y - 2}, ".") <>
+        Map.get(grid, {x, y - 3}, ".")
+
+    backwards =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x - 1, y}, ".") <>
+        Map.get(grid, {x - 2, y}, ".") <>
+        Map.get(grid, {x - 3, y}, ".")
+
+    horizontal =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x + 1, y}, ".") <>
+        Map.get(grid, {x + 2, y}, ".") <>
+        Map.get(grid, {x + 3, y}, ".")
+
+    dig_down_left =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x - 1, y + 1}, ".") <>
+        Map.get(grid, {x - 2, y + 2}, ".") <>
+        Map.get(grid, {x - 3, y + 3}, ".")
+
+    dig_up_left =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x + 1, y - 1}, ".") <>
+        Map.get(grid, {x + 2, y - 2}, ".") <>
+        Map.get(grid, {x + 3, y - 3}, ".")
+
+    dig_down_right =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x + 1, y + 1}, ".") <>
+        Map.get(grid, {x + 2, y + 2}, ".") <>
+        Map.get(grid, {x + 3, y + 3}, ".")
+
+    dig_up_right =
+      Map.get(grid, point, ".") <>
+        Map.get(grid, {x - 1, y - 1}, ".") <>
+        Map.get(grid, {x - 2, y - 2}, ".") <>
+        Map.get(grid, {x - 3, y - 3}, ".")
+
+    [up, down, horizontal, backwards, dig_down_left, dig_down_right, dig_up_left, dig_up_right]
+    |> Enum.filter(fn e -> e == "XMAS" end)
+    |> Enum.count()
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+lines = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..lines, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+
+Enum.reduce(grid, 0, fn {key, v}, acc ->
+  if v == "X" do
+    acc + Helper.xmas?(key, grid)
+  else
+    acc
+  end
+end)
+```
+
+## Part 02
+
+```elixir
+defmodule Helper2 do
+  def mas?({x, y} = point, grid) do
+    left_dig =
+      Map.get(grid, {x - 1, y - 1}, ".") <>
+        Map.get(grid, point, ".") <>
+        Map.get(grid, {x + 1, y + 1}, ".")
+
+    right_dig =
+      Map.get(grid, {x - 1, y + 1}, ".") <>
+        Map.get(grid, point, ".") <>
+        Map.get(grid, {x + 1, y - 1}, ".")
+
+    if right_dig in ["SAM", "MAS"] and left_dig in ["SAM", "MAS"] do
+      1
+    else
+      0
+    end
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(grid, 0, fn {key, v}, acc ->
+  if v == "A" do
+    acc + Helper2.mas?(key, grid)
+  else
+    acc
+  end
+end)
+```

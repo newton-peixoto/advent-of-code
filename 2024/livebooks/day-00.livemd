@@ -23,7 +23,8 @@ input = Kino.Input.textarea("Please paste your real input:")
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-
+example
+  |> Kino.Input.read()
 ```
 
 ## Part 02
