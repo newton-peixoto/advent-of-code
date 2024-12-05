@@ -1,0 +1,118 @@
+# Advent of code day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Solver do
+  def part01(lines, rules) do
+    Enum.filter(lines, fn line ->
+      ordered?(line, rules, nil)
+    end)
+    |> Enum.reduce(0, fn line, acc ->
+      Enum.at(line, div(length(line), 2)) + acc
+    end)
+  end
+
+  # not a good idea to permutate and then run ordered? function
+  # lets try sort the list using our rule.
+  def part02(lines, rules) do
+    Enum.filter(lines, fn line ->
+      not ordered?(line, rules, nil)
+    end)
+    |> Enum.map(fn line ->
+      Enum.sort(line, fn e1, e2 ->
+        aftr = Kernel.get_in(rules, Enum.map([e1, :after, e2], &Access.key(&1, %{})))
+        before = Kernel.get_in(rules, Enum.map([e2, :before, e1], &Access.key(&1, %{})))
+
+        {true, true} == {before, aftr}
+      end)
+    end)
+    |> Enum.reduce(0, fn line, acc ->
+      Enum.at(line, div(length(line), 2)) + acc
+    end)
+  end
+
+  def ordered?(_line, _rules, false), do: false
+  def ordered?([_ | []] = _line, _rules, _valid?), do: true
+
+  def ordered?([h | t] = _line, rules, _valid?) do
+    case Enum.all?(t, fn e ->
+           aftr = Kernel.get_in(rules, Enum.map([h, :after, e], &Access.key(&1, %{})))
+           before = Kernel.get_in(rules, Enum.map([e, :before, h], &Access.key(&1, %{})))
+
+           {true, true} == {before, aftr}
+         end) do
+      true -> ordered?(t, rules, true)
+      false -> ordered?(t, rules, false)
+    end
+  end
+
+  def permute([]), do: [[]]
+
+  def permute(list) do
+    for elem <- list, rest <- permute(list -- [elem]), do: [elem | rest]
+  end
+end
+```
+
+```elixir
+[rules, updates] =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n\n"], trim: true)
+
+rules =
+  rules
+  |> String.split("\n")
+  |> Enum.reduce(%{}, fn rule, acc ->
+    [key, aftr | _] = String.split(rule, "|", trim: true) |> Enum.map(&String.to_integer/1)
+    # Must study more about put_in and Access module.
+    acc = put_in(acc, Enum.map([key, :after, aftr], &Access.key(&1, %{})), true)
+    put_in(acc, Enum.map([aftr, :before, key], &Access.key(&1, %{})), true)
+  end)
+
+lines =
+  updates
+  |> String.split("\n")
+  |> Enum.map(fn e ->
+    String.split(e, ",", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Solver.part01(lines, rules)
+```
+
+```elixir
+
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Solver.part02(lines, rules)
+```
