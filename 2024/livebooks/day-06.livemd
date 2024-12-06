@@ -49,67 +49,55 @@ defmodule Solver do
   }
 
   def part02(grid, current_pos) do
-    {_, visited} = traverse(grid, current_pos)
+    {_, visited} = traverse(grid, current_pos, MapSet.new())
 
     visited = Enum.reject(visited, fn k -> k == current_pos end)
 
     Enum.reduce(visited, 0, fn {obstacle_y, obstacle_x}, acc ->
       modified_matrix = Map.put(grid, {obstacle_y, obstacle_x}, "O")
 
-      case traverse(modified_matrix, current_pos) do
+      case traverse(modified_matrix, current_pos, MapSet.new()) do
         :loop -> acc + 1
         _ -> acc
       end
     end)
   end
 
+  def traverse(matrix, {y, x}, visited) do
+    {{d_y, d_x}, current, rotated} = @dirs[matrix[{y, x}]]
 
-  # must check why
-  def traverse(matrix, {start_y, start_x}) do
-    0
-    |> Stream.iterate(&(&1 + 1))
-    |> Enum.reduce_while({matrix, {start_y, start_x}, MapSet.new()}, fn _,
-                                                                        {matrix, {y, x}, visited} ->
-      {{d_y, d_x}, current, rotated} = @dirs[matrix[{y, x}]]
+    if MapSet.member?(visited, {{y, x}, current}) do
+      :loop
+    else
+      updated_visited = MapSet.put(visited, {{y, x}, current})
 
-      if MapSet.member?(visited, {{y, x}, current}) do
-        {:halt, :loop}
-      else
-        updated_visited = MapSet.put(visited, {{y, x}, current})
+      case matrix[{y + d_y, x + d_x}] do
+        char when char == "#" or char == "O" ->
+          updated_matrix = Map.put(matrix, {y, x}, rotated)
+          traverse(updated_matrix, {y, x}, updated_visited)
 
-        case matrix[{y + d_y, x + d_x}] do
-          char when char == "#" or char == "O" ->
-            updated_matrix = Map.put(matrix, {y, x}, rotated)
+        char when char == "." or char == "X" ->
+          updated_matrix =
+            matrix |> Map.put({y, x}, "X") |> Map.put({y + d_y, x + d_x}, current)
 
-            {:cont, {updated_matrix, {y, x}, updated_visited}}
+          traverse(updated_matrix, {y + d_y, x + d_x}, updated_visited)
 
-          char when char == "." or char == "X" ->
-            updated_matrix =
-              matrix |> Map.put({y, x}, "X") |> Map.put({y + d_y, x + d_x}, current)
-
-            {:cont, {updated_matrix, {y + d_y, x + d_x}, updated_visited}}
-
-          nil ->
-            {:halt, {matrix, MapSet.new(updated_visited, &elem(&1, 0))}}
-        end
+        nil ->
+          {matrix, MapSet.new(updated_visited, &elem(&1, 0))}
       end
-    end)
+    end
   end
 end
 ```
 
 ## Part01
 
-```elixir
-
-```
-
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 {pos, _v} = Enum.find(grid, fn {_k, v} -> v == "^" end)
 
-{_, updated} = Solver.traverse(grid, pos)
+{_, updated} = Solver.traverse(grid, pos, MapSet.new())
 updated |> Enum.count
 ```
 
@@ -118,5 +106,5 @@ updated |> Enum.count
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-Solver.part02(grid, pos)
+ Solver.part02(grid, pos)
 ```
