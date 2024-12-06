@@ -41,54 +41,76 @@ grid =
 
 ```elixir
 defmodule Solver do
-  def walk(grid, current_pos, {max_col, max_row}) do
-    dir = grid[current_pos]
-    walk(grid, current_pos, Map.put(%{}, current_pos, true), {max_col, max_row}, dir)
+  @dirs %{
+    "^" => {{-1, 0}, "^", ">"},
+    ">" => {{0, 1}, ">", "v"},
+    "v" => {{1, 0}, "v", "<"},
+    "<" => {{0, -1}, "<", "^"}
+  }
+
+  def part02(grid, current_pos) do
+    {_, visited} = traverse(grid, current_pos)
+
+    visited = Enum.reject(visited, fn k -> k == current_pos end)
+
+    Enum.reduce(visited, 0, fn {obstacle_y, obstacle_x}, acc ->
+      modified_matrix = Map.put(grid, {obstacle_y, obstacle_x}, "O")
+
+      case traverse(modified_matrix, current_pos) do
+        :loop -> acc + 1
+        _ -> acc
+      end
+    end)
   end
 
-  defp walk(_grid, {x, y} = _position, %{} = visited, {_max_col, _max_row}, _)
-       when x < 0 or y < 0 do
-    visited
-  end
 
-  defp walk(_grid, {x, y} = _position, %{} = visited, {max_col, max_row}, _)
-       when x > max_col or y > max_row do
-    visited
-  end
+  # must check why
+  def traverse(matrix, {start_y, start_x}) do
+    0
+    |> Stream.iterate(&(&1 + 1))
+    |> Enum.reduce_while({matrix, {start_y, start_x}, MapSet.new()}, fn _,
+                                                                        {matrix, {y, x}, visited} ->
+      {{d_y, d_x}, current, rotated} = @dirs[matrix[{y, x}]]
 
-  defp walk(grid, {row, col} = current_pos, visited, {max_col, max_row}, dir) do
-    cond  do
-      dir == "^" and grid[{row - 1, col}] == "#" -> 
-        walk(grid, {row, col + 1}, Map.put(visited, current_pos, true), {max_col, max_row}, ">")
-      dir == ">" and grid[{row, col + 1}] == "#" -> 
-        walk(grid, {row + 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "v")
-      dir == "v" and grid[{row + 1, col}] == "#" -> 
-        walk(grid, {row, col - 1}, Map.put(visited, current_pos, true), {max_col, max_row}, "<")
-      dir == "<" and grid[{row, col - 1}] == "#" -> 
-        walk(grid, {row - 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "^")
-      ### now the happy path
-      dir == "^" and grid[{row - 1, col}] != "#" -> 
-        walk(grid, {row - 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "^")
-      dir == ">" and grid[{row, col + 1}] != "#" -> 
-        walk(grid, {row, col + 1}, Map.put(visited, current_pos, true), {max_col, max_row}, ">")
-      dir == "v" and grid[{row - 1, col}] != "#" -> 
-        walk(grid, {row + 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "v")
-      dir == "<" and grid[{row, col - 1}] != "#" -> 
-        walk(grid, {row, col - 1}, Map.put(visited, current_pos, true), {max_col, max_row}, "<")
-    end
-    
+      if MapSet.member?(visited, {{y, x}, current}) do
+        {:halt, :loop}
+      else
+        updated_visited = MapSet.put(visited, {{y, x}, current})
+
+        case matrix[{y + d_y, x + d_x}] do
+          char when char == "#" or char == "O" ->
+            updated_matrix = Map.put(matrix, {y, x}, rotated)
+
+            {:cont, {updated_matrix, {y, x}, updated_visited}}
+
+          char when char == "." or char == "X" ->
+            updated_matrix =
+              matrix |> Map.put({y, x}, "X") |> Map.put({y + d_y, x + d_x}, current)
+
+            {:cont, {updated_matrix, {y + d_y, x + d_x}, updated_visited}}
+
+          nil ->
+            {:halt, {matrix, MapSet.new(updated_visited, &elem(&1, 0))}}
+        end
+      end
+    end)
   end
 end
 ```
 
 ## Part01
 
+```elixir
+
+```
+
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-{pos, _v} = Enum.find(grid, fn {_k, v} ->  v == "^"  end)
+{pos, _v} = Enum.find(grid, fn {_k, v} -> v == "^" end)
 
-Solver.walk(grid, pos, {cols, lines}) |> Enum.count
+{_, updated} = Solver.traverse(grid, pos)
+updated |> Enum.count
 ```
 
 ## Part 02
@@ -96,5 +118,5 @@ Solver.walk(grid, pos, {cols, lines}) |> Enum.count
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-
+Solver.part02(grid, pos)
 ```
