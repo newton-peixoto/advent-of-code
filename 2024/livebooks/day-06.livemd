@@ -1,0 +1,100 @@
+# Advent of code day day 06
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## parse
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+lines = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..lines, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+```
+
+```elixir
+defmodule Solver do
+  def walk(grid, current_pos, {max_col, max_row}) do
+    dir = grid[current_pos]
+    walk(grid, current_pos, Map.put(%{}, current_pos, true), {max_col, max_row}, dir)
+  end
+
+  defp walk(_grid, {x, y} = _position, %{} = visited, {_max_col, _max_row}, _)
+       when x < 0 or y < 0 do
+    visited
+  end
+
+  defp walk(_grid, {x, y} = _position, %{} = visited, {max_col, max_row}, _)
+       when x > max_col or y > max_row do
+    visited
+  end
+
+  defp walk(grid, {row, col} = current_pos, visited, {max_col, max_row}, dir) do
+    cond  do
+      dir == "^" and grid[{row - 1, col}] == "#" -> 
+        walk(grid, {row, col + 1}, Map.put(visited, current_pos, true), {max_col, max_row}, ">")
+      dir == ">" and grid[{row, col + 1}] == "#" -> 
+        walk(grid, {row + 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "v")
+      dir == "v" and grid[{row + 1, col}] == "#" -> 
+        walk(grid, {row, col - 1}, Map.put(visited, current_pos, true), {max_col, max_row}, "<")
+      dir == "<" and grid[{row, col - 1}] == "#" -> 
+        walk(grid, {row - 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "^")
+      ### now the happy path
+      dir == "^" and grid[{row - 1, col}] != "#" -> 
+        walk(grid, {row - 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "^")
+      dir == ">" and grid[{row, col + 1}] != "#" -> 
+        walk(grid, {row, col + 1}, Map.put(visited, current_pos, true), {max_col, max_row}, ">")
+      dir == "v" and grid[{row - 1, col}] != "#" -> 
+        walk(grid, {row + 1, col}, Map.put(visited, current_pos, true), {max_col, max_row}, "v")
+      dir == "<" and grid[{row, col - 1}] != "#" -> 
+        walk(grid, {row, col - 1}, Map.put(visited, current_pos, true), {max_col, max_row}, "<")
+    end
+    
+  end
+end
+```
+
+## Part01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{pos, _v} = Enum.find(grid, fn {_k, v} ->  v == "^"  end)
+
+Solver.walk(grid, pos, {cols, lines}) |> Enum.count
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```

@@ -94,7 +94,6 @@ lines =
     String.split(e, ",", trim: true)
     |> Enum.map(&String.to_integer/1)
   end)
-
 ```
 
 ## Part 01
@@ -103,10 +102,6 @@ lines =
 
 ```elixir
 Solver.part01(lines, rules)
-```
-
-```elixir
-
 ```
 
 ## Part 02
