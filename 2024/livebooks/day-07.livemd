@@ -1,0 +1,92 @@
+# Advent of code day 07
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+```elixir
+defmodule Solver do
+  def possible?(target, nums) do
+    possible?(target, nums, 0)
+  end
+
+  defp possible?(t, [], sum), do: t == sum
+
+  defp possible?(t, [n | nums], sum) do
+    possible?(t, nums, n + sum) || possible?(t, nums, n * sum)
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n", ": "], trim: true)
+  |> Enum.chunk_every(2)
+  |> Enum.reduce(%{}, fn [target, rest], acc ->
+    Map.put(
+      acc,
+      String.to_integer(target),
+      String.split(rest) |> Enum.map(&String.to_integer(&1))
+    )
+  end)
+
+Enum.reduce(input, 0, fn {k, v}, acc ->
+  case Solver.possible?(k, v) do
+    true -> acc + k
+    false -> acc
+  end
+end)
+```
+
+## Part 02
+
+```elixir
+defmodule Solver2 do
+  def possible?(target, nums) do
+    possible?(target, nums, 0)
+  end
+
+  defp possible?(t, [], sum), do: t == sum
+
+  defp possible?(t, [n | nums], sum) do
+    possible?(t, nums, n + sum) ||
+      possible?(t, nums, n * sum) ||
+      possible?(t, nums, sum * 10 ** digits(n) + n)
+  end
+
+  defp digits(n) do
+    Integer.to_string(n) |> String.length()
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(input, 0, fn {k, v}, acc -> 
+    case Solver2.possible?(k, v) do
+      true -> acc + k 
+      false -> acc
+    end
+end )
+```

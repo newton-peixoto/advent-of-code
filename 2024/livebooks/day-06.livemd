@@ -90,6 +90,30 @@ defmodule Solver do
 end
 ```
 
+```elixir
+## helper module
+defmodule GridPrinter do
+  def print_grid(map) do
+    # Extract all the coordinates
+    coordinates = Map.keys(map)
+
+    # Determine the grid bounds
+    {min_x, max_x} = Enum.min_max(Enum.map(coordinates, fn {x, _y} -> x end))
+    {min_y, max_y} = Enum.min_max(Enum.map(coordinates, fn {_x, y} -> y end))
+
+    # Build the grid as a string
+    for y <- min_y..max_y do
+      for x <- min_x..max_x do
+        Map.get(map, {x, y}, " ") # Get the value or a default space
+      end
+      |> Enum.join("")           # Join the row into a string
+    end
+    |> Enum.join("\n")           # Join all rows with a newline
+    |> IO.puts                   # Print the grid
+  end
+end
+```
+
 ## Part01
 
 <!-- livebook:{"reevaluate_automatically":true} -->
@@ -97,8 +121,11 @@ end
 ```elixir
 {pos, _v} = Enum.find(grid, fn {_k, v} -> v == "^" end)
 
-{_, updated} = Solver.traverse(grid, pos, MapSet.new())
+{matrix, updated} = Solver.traverse(grid, pos, MapSet.new())
 updated |> Enum.count
+
+
+GridPrinter.print_grid(matrix)
 ```
 
 ## Part 02
