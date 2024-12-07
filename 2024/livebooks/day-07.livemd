@@ -50,11 +50,16 @@ input =
     )
   end)
 
-Enum.reduce(input, 0, fn {k, v}, acc ->
-  case Solver.possible?(k, v) do
-    true -> acc + k
-    false -> acc
-  end
+:timer.tc(fn ->
+  Enum.reduce(input, 0, fn {k, v}, acc ->
+    case Solver.possible?(k, v) do
+      true -> acc + k
+      false -> acc
+    end
+  end)
+end)
+|> then(fn {time, value} ->
+  "it took #{div(time, 1000)} ms and result is #{value}"
 end)
 ```
 
@@ -83,10 +88,16 @@ end
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-Enum.reduce(input, 0, fn {k, v}, acc -> 
+:timer.tc(fn ->
+  Task.async_stream(input, fn {k, v} ->
     case Solver2.possible?(k, v) do
-      true -> acc + k 
-      false -> acc
+      true -> k
+      false -> 0
     end
-end )
+  end)
+  |> Enum.reduce(0, fn {:ok, n}, acc -> n + acc end)
+end)
+|> then(fn {time, value} ->
+  "it took #{div(time, 1000)} ms and result is #{value}"
+end)
 ```
