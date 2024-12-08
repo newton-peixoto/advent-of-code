@@ -67,7 +67,39 @@ defmodule Solver do
   end
 
   def part02(antennas, {max_row, max_col}) do
+    Enum.reduce(antennas, MapSet.new(), fn {_k, coords}, ss ->
+      crds = List.to_tuple(coords)
 
+      for r <- 0..(length(coords) - 1), c <- 0..(length(coords) - 1), c != r do
+        {{r1, c1}, _} = elem(crds, r)
+        {{r2, c2}, _} = elem(crds, c)
+        dr = r2 - r1
+        dc = c2 - c1
+
+        rx = r1
+        cx = c1
+
+        0
+        |> Stream.iterate(&(&1 + 1))
+        |> Enum.reduce_while(%{set: MapSet.new(), r: rx, c: cx}, fn _, acc ->
+          set = MapSet.put(acc.set, {acc.r, acc.c})
+
+          r = acc.r + dr
+          c = acc.c + dc
+
+          cond do
+            acc.r < 0 or acc.r > max_row or (acc.c < 0 or acc.c > max_col) ->
+              {:halt, acc.set}
+
+            true ->
+              {:cont, %{acc | set: set, r: r, c: c}}
+          end
+        end)
+      end
+      |> Enum.reduce(ss, fn m, acc ->
+        MapSet.union(m, acc)
+      end)
+    end)
   end
 end
 ```
@@ -78,7 +110,7 @@ end
 antennas = grid |> Enum.group_by(fn {_, v} -> v end ) |> Map.delete(".")
 
 
-Solver.part01(antennas, {rows, cols}) 
+Solver.part01(antennas, {rows, cols})  |> Enum.uniq |> Enum.count
 ```
 
 ## Part 02
@@ -86,7 +118,5 @@ Solver.part01(antennas, {rows, cols})
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-
-
-Solver.part02(antennas, {rows, cols})
+Solver.part02(antennas, {rows, cols})  |> MapSet.size()
 ```
