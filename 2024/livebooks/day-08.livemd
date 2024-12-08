@@ -1,0 +1,92 @@
+# Advent of code day 08
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Parse
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+rows = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+```
+
+## Part 01
+
+```elixir
+
+```
+
+```elixir
+defmodule Solver do
+  def part01(antennas, {max_row, max_col}) do
+    Enum.reduce(antennas, MapSet.new(), fn {_k, coords}, set ->
+      crds = List.to_tuple(coords)
+
+      for r <- 0..(length(coords) - 1), c <- 1..(length(coords) - 1), c != r do
+        {{r1, c1}, _} = elem(crds, r)
+        {{r2, c2}, _} = elem(crds, c)
+
+        a = {2 * r1 - r2, 2 * c1 - c2}
+        b = {2 * r2 - r1, 2 * c2 - c1}
+        {a, b}
+      end
+      |> Enum.reduce(set, fn {a, b}, s ->
+        MapSet.put(s, a) |> MapSet.put(b)
+      end)
+    end)
+    |> Enum.reject(fn {row, col} ->
+      row < 0 or row > max_row or (col < 0 or col > max_col)
+    end)
+  end
+
+  def part02(antennas, {max_row, max_col}) do
+
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+antennas = grid |> Enum.group_by(fn {_, v} -> v end ) |> Map.delete(".")
+
+
+Solver.part01(antennas, {rows, cols}) 
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+
+Solver.part02(antennas, {rows, cols})
+```
