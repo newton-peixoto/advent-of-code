@@ -43,10 +43,10 @@ input = Kino.Input.textarea("Please paste your real input:")
     end
   end)
 
-{list, index} = {Enum.reverse(list), index}
+{list_2, index} = {Enum.reverse(list), index}
 
 map_of_memory = Enum.frequencies(list)
-list = List.to_tuple(list)
+list = List.to_tuple(list_2)
 
 j = tuple_size(list) - 1
 i = 0
@@ -87,105 +87,89 @@ Enum.reduce(i..j, {0, result}, fn p, {total, list} ->
 
 ## Part 02
 
-```elixir
-defmodule Helper do
-  def avaiable_space(tuple, from) do
-    0
-    |> Stream.iterate(&(&1 + 1))
-    |> Enum.reduce_while({from, 0}, fn _, {from, space} ->
-      if elem(tuple, from) == "." do
-        {:cont, {from + 1, space + 1}}
-      else
-        {:halt, space}
-      end
-    end)
-  end
-
-  def avaiable_space(tuple, from, :backwards) do
-    0
-    |> Stream.iterate(&(&1 + 1))
-    |> Enum.reduce_while({from, 0}, fn _, {from, space} ->
-      if elem(tuple, from) == "." do
-        {:cont, {from - 1, space + 1}}
-      else
-        {:halt, space}
-      end
-    end)
-  end
-
-  def fill_tuple(tuple, char, from, amount) do
-    Enum.reduce(from..(from + amount - 1), tuple, fn idx, t ->
-      put_elem(t, idx, char)
-    end)
-  end
-
-  def fill_tuple(tuple, char, from, amount, :backwards) do
-    Enum.reduce(from..(from - amount + 1), tuple, fn idx, t ->
-      put_elem(t, idx, char)
-    end)
-  end
-end
-```
-
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-result =
-  0
-  |> Stream.iterate(&(&1 + 1))
-  |> Enum.reduce_while({list, i, j}, fn _, {list, i, j} ->
-    # IO.inspect("{#{i},#{j}} #{elem(list, i)} , #{elem(list, j)}")
+list =
+  example
+  |> Kino.Input.read()
+  |> String.split("", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
 
-   #  IO.inspect(list)
+fid = 0
+pos = 0
 
-    element_i = elem(list, i)
-    element_j = elem(list, j)
+files = %{}
+blanks = []
 
-    if i >= j do
-      {:halt, list}
-    else
-      case {element_i, element_j} do
-        {".", "."} ->
-          available = Helper.avaiable_space(list, i)
-          a_b = Helper.avaiable_space(list, j, :backwards)
-          {:cont, {list, i - available, j - a_b}}
+{pos, fid, %{files: files, blanks: blanks}} =
+  Enum.reduce(
+    0..(tuple_size(list) - 1),
+    {pos, fid, %{files: files, blanks: blanks}},
+    fn i,
+       {pos, fid,
+        %{
+          files: files,
+          blanks: blanks
+        } = map} = _acc ->
+      length = elem(list, i)
 
-        {".", element_j} ->
-          space = Helper.avaiable_space(list, i)
-          j_jump = Map.get(map_of_memory, element_j)
+      if rem(i, 2) == 0 do
+        files = Map.put(files, fid, {pos, length})
+        fid = fid + 1
 
-          if space >= j_jump do
-            list =
-              list
-              |> Helper.fill_tuple(elem(list, j), i, j_jump)
-              |> Helper.fill_tuple(".", j, j_jump, :backwards)
-
-            {:cont, {list, i + 1, j - j_jump}}
-          else
-            {:cont, {list, i + space, j}}
-          end
-
-        {element_i, "."} ->
-          a_b = Helper.avaiable_space(list, j, :backwards)
-          {:cont, {list, i + Map.get(map_of_memory, element_i), j - a_b}}
-
-        {element_i, element_j} when element_i == element_j ->
-          {:cont, {list, 0, j - Map.get(map_of_memory, element_j)}}
-
-        {element_i, _element_j} ->
-          {:cont, {list, i + Map.get(map_of_memory, element_i), j}}
+        {pos + length, fid, %{map | files: files}}
+      else
+        blanks = if length != 0, do: [{pos, length} | blanks] |> Enum.reverse(), else: blanks
+        {pos + length, fid, %{map | blanks: blanks}}
       end
     end
-  end)
+  )
 
+{_, response, _} =
+  0
+  |> Stream.iterate(&(&1 + 1))
+  |> Enum.reduce_while(
+    {fid, files, Enum.sort_by(blanks, fn {p, _} -> p end)},
+    fn _, {fid, files, blanks} ->
+      if fid == 0 do
+        {:halt, {fid, files, blanks}}
+      else
+        fid = fid - 1
 
-Enum.reduce(i..j, {0, result}, fn p, {total, list} ->
-  if elem(list, p) == "." do
-    {total, list}
-  else
-    {total + elem(list, p) * p, list}
-  end
-  end) |> then(fn {t, _ } -> t end)
+        {pos, size} = Map.get(files, fid)
 
+        p_blanks =
+          Enum.filter(Enum.with_index(blanks), fn {{b_pos, b_size}, _index} ->
+            b_pos <= pos and b_size >= size
+          end)
 
+        case p_blanks do
+          [{{start, length}, b_index} | _] ->
+            blanks =
+              if size == length do
+                blanks |> List.delete_at(b_index)
+              else
+                blanks |> List.replace_at(b_index, {start + size, length - size})
+              end
+
+            files = Map.put(files, fid, {start, size})
+
+            {:cont, {fid, files, blanks}}
+
+          [] ->
+            {:cont, {fid, files, blanks}}
+        end
+      end
+    end
+  )
+
+response
+|> Enum.reduce(0, fn {fid, {pos, size}}, total ->
+    total +
+      Enum.reduce(pos..(pos + size - 1), 0, fn x, acc ->
+         acc + fid * x
+      end)
+end)
 ```
