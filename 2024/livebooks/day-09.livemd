@@ -1,0 +1,191 @@
+# Advent of code day 09
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{list, _method, index} =
+  example
+  |> Kino.Input.read()
+  |> String.split("", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.reduce({[], true, 0}, fn e, {list, method, index} ->
+    cond do
+      e == 0 ->
+        {list, !method, index}
+
+      method == true ->
+        elements = Enum.map(0..(e - 1), fn _x -> index end)
+        {elements ++ list, !method, index + 1}
+
+      true ->
+        elements = Enum.map(0..(e - 1), fn _x -> "." end)
+        {elements ++ list, !method, index}
+    end
+  end)
+
+{list, index} = {Enum.reverse(list), index}
+
+map_of_memory = Enum.frequencies(list)
+list = List.to_tuple(list)
+
+j = tuple_size(list) - 1
+i = 0
+
+result =
+  0
+  |> Stream.iterate(&(&1 + 1))
+  |> Enum.reduce_while({list, i, j}, fn _, {list, i, j} ->
+    if i == j do
+      {:halt, list}
+    else
+      cond do
+        elem(list, i) == "." && elem(list, j) == "." ->
+          {:cont, {list, i, j - 1}}
+
+        elem(list, i) == "." && elem(list, j) != "." ->
+          list = put_elem(list, i, elem(list, j)) |> put_elem(j, ".")
+
+          {:cont, {list, i + 1, j - 1}}
+
+        elem(list, i) != "." && elem(list, j) != "." ->
+          {:cont, {list, i + 1, j}}
+
+        elem(list, i) != "." && elem(list, j) == "." ->
+          {:cont, {list, i + 1, j - 1}}
+      end
+    end
+  end)
+
+Enum.reduce(i..j, {0, result}, fn p, {total, list} ->
+  if elem(list, p) == "." do
+    {total, list}
+  else
+    {total + elem(list, p) * p, list}
+  end
+  end) |> then(fn {t, _ } -> t end)
+```
+
+## Part 02
+
+```elixir
+defmodule Helper do
+  def avaiable_space(tuple, from) do
+    0
+    |> Stream.iterate(&(&1 + 1))
+    |> Enum.reduce_while({from, 0}, fn _, {from, space} ->
+      if elem(tuple, from) == "." do
+        {:cont, {from + 1, space + 1}}
+      else
+        {:halt, space}
+      end
+    end)
+  end
+
+  def avaiable_space(tuple, from, :backwards) do
+    0
+    |> Stream.iterate(&(&1 + 1))
+    |> Enum.reduce_while({from, 0}, fn _, {from, space} ->
+      if elem(tuple, from) == "." do
+        {:cont, {from - 1, space + 1}}
+      else
+        {:halt, space}
+      end
+    end)
+  end
+
+  def fill_tuple(tuple, char, from, amount) do
+    Enum.reduce(from..(from + amount - 1), tuple, fn idx, t ->
+      put_elem(t, idx, char)
+    end)
+  end
+
+  def fill_tuple(tuple, char, from, amount, :backwards) do
+    Enum.reduce(from..(from - amount + 1), tuple, fn idx, t ->
+      put_elem(t, idx, char)
+    end)
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+result =
+  0
+  |> Stream.iterate(&(&1 + 1))
+  |> Enum.reduce_while({list, i, j}, fn _, {list, i, j} ->
+    # IO.inspect("{#{i},#{j}} #{elem(list, i)} , #{elem(list, j)}")
+
+   #  IO.inspect(list)
+
+    element_i = elem(list, i)
+    element_j = elem(list, j)
+
+    if i >= j do
+      {:halt, list}
+    else
+      case {element_i, element_j} do
+        {".", "."} ->
+          available = Helper.avaiable_space(list, i)
+          a_b = Helper.avaiable_space(list, j, :backwards)
+          {:cont, {list, i - available, j - a_b}}
+
+        {".", element_j} ->
+          space = Helper.avaiable_space(list, i)
+          j_jump = Map.get(map_of_memory, element_j)
+
+          if space >= j_jump do
+            list =
+              list
+              |> Helper.fill_tuple(elem(list, j), i, j_jump)
+              |> Helper.fill_tuple(".", j, j_jump, :backwards)
+
+            {:cont, {list, i + 1, j - j_jump}}
+          else
+            {:cont, {list, i + space, j}}
+          end
+
+        {element_i, "."} ->
+          a_b = Helper.avaiable_space(list, j, :backwards)
+          {:cont, {list, i + Map.get(map_of_memory, element_i), j - a_b}}
+
+        {element_i, element_j} when element_i == element_j ->
+          {:cont, {list, 0, j - Map.get(map_of_memory, element_j)}}
+
+        {element_i, _element_j} ->
+          {:cont, {list, i + Map.get(map_of_memory, element_i), j}}
+      end
+    end
+  end)
+
+
+Enum.reduce(i..j, {0, result}, fn p, {total, list} ->
+  if elem(list, p) == "." do
+    {total, list}
+  else
+    {total + elem(list, p) * p, list}
+  end
+  end) |> then(fn {t, _ } -> t end)
+
+
+```
