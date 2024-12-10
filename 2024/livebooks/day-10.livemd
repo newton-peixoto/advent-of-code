@@ -1,0 +1,124 @@
+# Advent of code day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+  # @dirs %{
+  #   "^" => {{-1, 0}, "^", ">"},
+  #   ">" => {{0, 1}, ">", "v"},
+  #   "v" => {{1, 0}, "v", "<"},
+  #   "<" => {{0, -1}, "<", "^"}
+  # }
+
+```
+
+```elixir
+defmodule Helper do
+  def solve(grid, point) do
+    trailheads(MapSet.new(), grid, point, point)
+  end
+
+  def solve2(grid, point) do
+    distinct_hiking(0, grid, point, point)
+  end
+
+  defp trailheads(set, grid, {r, c} = c_point, p_point) do
+    cond do
+      grid[c_point] == 9 && grid[c_point] - grid[p_point] == 1 ->
+        MapSet.put(set, c_point)
+
+      grid[c_point] == nil ->
+        set
+
+      c_point in set ->
+        set
+
+      grid[c_point] - grid[p_point] != 1 and c_point != p_point ->
+        set
+
+      true ->
+        set
+        |> trailheads(grid, {r - 1, c}, c_point)
+        |> trailheads(grid, {r, c + 1}, c_point)
+        |> trailheads(grid, {r + 1, c}, c_point)
+        |> trailheads(grid, {r, c - 1}, c_point)
+    end
+  end
+
+
+  defp distinct_hiking(value, grid, {r, c} = c_point, p_point) do
+    cond do
+      grid[c_point] == 9 && grid[c_point] - grid[p_point] == 1 ->
+        value + 1
+
+      grid[c_point] == nil ->
+        value + 0
+
+      grid[c_point] - grid[p_point] != 1 and c_point != p_point ->
+        value + 0
+
+      true ->
+        value
+        |> distinct_hiking(grid, {r - 1, c}, c_point)
+        |> distinct_hiking(grid, {r, c + 1}, c_point)
+        |> distinct_hiking(grid, {r + 1, c}, c_point)
+        |> distinct_hiking(grid, {r, c - 1}, c_point)
+    end
+  end
+
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+lines = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..lines, c <- 0..cols, into: %{} do
+    {{l, c}, String.to_integer(elem(elem(parsed, l), c))}
+  end
+
+start_points = Enum.filter(grid, fn {_k, value} -> value == 0 end) |> Enum.into(%{})
+
+Enum.reduce(start_points, 0, fn {point, _}, acc ->
+  ( Helper.solve(grid, point) |> MapSet.size() ) + acc
+end)
+
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(start_points, 0, fn {point, _}, acc ->
+  Helper.solve2(grid, point) + acc
+end)
+```
