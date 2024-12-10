@@ -85,10 +85,6 @@ defmodule Helper do
 end
 ```
 
-## Part 01
-
-<!-- livebook:{"reevaluate_automatically":true} -->
-
 ```elixir
 parsed =
   example
@@ -106,7 +102,13 @@ grid =
   end
 
 start_points = Enum.filter(grid, fn {_k, value} -> value == 0 end) |> Enum.into(%{})
+```
 
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
 Enum.reduce(start_points, 0, fn {point, _}, acc ->
   ( Helper.solve(grid, point) |> MapSet.size() ) + acc
 end)
