@@ -27,22 +27,43 @@ stones =
 ```
 
 ```elixir
+
+# My first approach was to just loop through all recursion size
+# it went well for part01
+# part02 was very heavy so we need a optmization. First try was memo but after some thinking 
+# decided to try a map approach 
 defmodule Blinker do
-  def blink([]), do: []
+  def blink_times(stones, 0), do: stones
 
-  def blink([el | stones]) do
-    digits = Integer.digits(el)
+  def blink_times(stones, times) do
+    stones
+    |> Map.to_list()
+    |> blink(%{})
+    |> blink_times(times - 1)
+  end
 
-    cond do
-      el == 0 ->
-        [1 | blink(stones)]
+  def blink([], acc), do: acc
 
-      rem(length(digits), 2) == 0 ->
-        {n1, n2} = Enum.split(digits, div(length(digits), 2))
-        [Integer.undigits(n1) | [Integer.undigits(n2) | blink(stones)]]
+  def blink([{0, n} | rest], acc) do
+    blink(rest, Map.update(acc, 1, n, &(&1 + n)))
+  end
 
-      true ->
-        [el * 2024 | blink(stones)]
+  def blink([{x, n} | rest], acc) do
+    digits = Integer.digits(x) 
+
+    case rem(Enum.count(digits), 2) do
+      0 ->
+        {a, b} = Enum.split(digits, div(Enum.count(digits), 2))
+
+        acc =
+          acc
+          |> Map.update(Integer.undigits(a), n, &(&1 + n))
+          |> Map.update(Integer.undigits(b), n, &(&1 + n))
+
+        blink(rest, acc)
+
+      1 ->
+        blink(rest, Map.update(acc, x * 2024, n, &(&1 + n)))
     end
   end
 end
@@ -50,13 +71,10 @@ end
 
 ## Part 01
 
-<!-- livebook:{"reevaluate_automatically":true} -->
-
 ```elixir
+stones = stones |> Enum.frequencies
 
-Enum.reduce(0..24, stones, fn _x, stones -> 
-  Blinker.blink(stones)
-  end) |> length
+stones |> Blinker.blink_times(25)  |> Map.values |> Enum.sum
 ```
 
 ## Part 02
@@ -64,5 +82,5 @@ Enum.reduce(0..24, stones, fn _x, stones ->
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-
+stones |> Blinker.blink_times(75)  |> Map.values |> Enum.sum
 ```
