@@ -1,0 +1,68 @@
+# Advent of code day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+stones =
+  example
+  |> Kino.Input.read()
+  |> String.split(" ", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+```elixir
+defmodule Blinker do
+  def blink([]), do: []
+
+  def blink([el | stones]) do
+    digits = Integer.digits(el)
+
+    cond do
+      el == 0 ->
+        [1 | blink(stones)]
+
+      rem(length(digits), 2) == 0 ->
+        {n1, n2} = Enum.split(digits, div(length(digits), 2))
+        [Integer.undigits(n1) | [Integer.undigits(n2) | blink(stones)]]
+
+      true ->
+        [el * 2024 | blink(stones)]
+    end
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+Enum.reduce(0..24, stones, fn _x, stones -> 
+  Blinker.blink(stones)
+  end) |> length
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
