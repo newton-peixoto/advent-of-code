@@ -1,4 +1,4 @@
-# Advent of code day 10
+# Advent of code day 11
 
 ```elixir
 Mix.install([
@@ -12,12 +12,6 @@ Mix.install([
 example = Kino.Input.textarea("Please paste your input example:")
 ```
 
-<!-- livebook:{"reevaluate_automatically":true} -->
-
-```elixir
-input = Kino.Input.textarea("Please paste your real input:")
-```
-
 ```elixir
 stones =
   example
@@ -27,43 +21,80 @@ stones =
 ```
 
 ```elixir
+# copied from elixir docs
+defmodule SimpleCache do
+  @moduledoc """
+  A simple ETS based cache for expensive function calls.
+  """
 
-# My first approach was to just loop through all recursion size
-# it went well for part01
-# part02 was very heavy so we need a optmization. First try was memo but after some thinking 
-# decided to try a map approach 
+  def init_cache() do
+    if :ets.whereis(:simple_cache) != :undefined do
+      :ets.delete(:simple_cache)
+    end
+
+    :ets.new(:simple_cache, [:set, :public, :named_table])
+  end
+
+  @doc """
+  Retrieve a cached value or apply the given function caching and returning
+  the result.
+  """
+  def get(mod, fun, args, opts \\ []) do
+    case lookup(mod, fun, args) do
+      nil ->
+        ttl = Keyword.get(opts, :ttl, 3600)
+        cache_apply(mod, fun, args, ttl)
+
+      result ->
+        result
+    end
+  end
+
+  defp lookup(mod, fun, args) do
+    case :ets.lookup(:simple_cache, [mod, fun, args]) do
+      [result | _] -> check_freshness(result)
+      [] -> nil
+    end
+  end
+
+  defp check_freshness({_mfa, result, expiration}) do
+    cond do
+      expiration > :os.system_time(:seconds) -> result
+      :else -> nil
+    end
+  end
+
+  defp cache_apply(mod, fun, args, ttl) do
+    result = apply(mod, fun, args)
+    expiration = :os.system_time(:seconds) + ttl
+    :ets.insert(:simple_cache, {[mod, fun, args], result, expiration})
+    result
+  end
+end
+```
+
+```elixir
+SimpleCache.init_cache()
+```
+
+```elixir
+# changed my mind. lets use memo xD
 defmodule Blinker do
-  def blink_times(stones, 0), do: stones
+  def blink(_stone, 0), do: 1
+  def blink(0, steps), do: SimpleCache.get(Blinker, :blink, [1, steps - 1])
 
-  def blink_times(stones, times) do
-    stones
-    |> Map.to_list()
-    |> blink(%{})
-    |> blink_times(times - 1)
-  end
-
-  def blink([], acc), do: acc
-
-  def blink([{0, n} | rest], acc) do
-    blink(rest, Map.update(acc, 1, n, &(&1 + n)))
-  end
-
-  def blink([{x, n} | rest], acc) do
-    digits = Integer.digits(x) 
+  def blink(stone, steps) do
+    digits = Integer.digits(stone)
 
     case rem(Enum.count(digits), 2) do
       0 ->
         {a, b} = Enum.split(digits, div(Enum.count(digits), 2))
 
-        acc =
-          acc
-          |> Map.update(Integer.undigits(a), n, &(&1 + n))
-          |> Map.update(Integer.undigits(b), n, &(&1 + n))
-
-        blink(rest, acc)
+        SimpleCache.get(Blinker, :blink, [Integer.undigits(a), steps - 1]) +
+          SimpleCache.get(Blinker, :blink, [Integer.undigits(b), steps - 1])
 
       1 ->
-        blink(rest, Map.update(acc, x * 2024, n, &(&1 + n)))
+        SimpleCache.get(Blinker, :blink, [stone * 2024, steps - 1])
     end
   end
 end
@@ -71,16 +102,18 @@ end
 
 ## Part 01
 
-```elixir
-stones = stones |> Enum.frequencies
+<!-- livebook:{"reevaluate_automatically":true} -->
 
-stones |> Blinker.blink_times(25)  |> Map.values |> Enum.sum
+```elixir
+Enum.reduce(stones, 0, fn stone, acc ->
+  Blinker.blink(stone, 25) + acc
+end)
 ```
 
 ## Part 02
 
-<!-- livebook:{"reevaluate_automatically":true} -->
-
 ```elixir
-stones |> Blinker.blink_times(75)  |> Map.values |> Enum.sum
+Enum.reduce(stones, 0, fn stone, acc ->
+  Blinker.blink(stone, 75) + acc
+end)
 ```
