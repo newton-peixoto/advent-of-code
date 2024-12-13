@@ -1,0 +1,166 @@
+# Advent of code day 08
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Parse
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+rows = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+```
+
+```elixir
+defmodule Solver do
+  def walk(set, grid, {r, c} = point, prev) do
+    if point in set or grid[point] != grid[prev] do
+      set
+    else
+      MapSet.put(set, point)
+      |> walk(grid, {r - 1, c}, point)
+      |> walk(grid, {r, c + 1}, point)
+      |> walk(grid, {r + 1, c}, point)
+      |> walk(grid, {r, c - 1}, point)
+    end
+  end
+
+  # a garden have 04 sides if its alone so we check to see if we
+  # find a neighbour right next to us and subtract it
+  def calculate_price(region) do
+    Enum.reduce(region, 0, fn {r, c} = _point, acc ->
+      amount_of_untouched_neigbour = 0
+
+      amount_of_untouched_neigbour =
+        if MapSet.member?(region, {r - 1, c}),
+          do: amount_of_untouched_neigbour,
+          else: amount_of_untouched_neigbour + 1
+
+      amount_of_untouched_neigbour =
+        if MapSet.member?(region, {r, c + 1}),
+          do: amount_of_untouched_neigbour,
+          else: amount_of_untouched_neigbour + 1
+
+      amount_of_untouched_neigbour =
+        if MapSet.member?(region, {r + 1, c}),
+          do: amount_of_untouched_neigbour,
+          else: amount_of_untouched_neigbour + 1
+
+      amount_of_untouched_neigbour =
+        if MapSet.member?(region, {r, c - 1}),
+          do: amount_of_untouched_neigbour,
+          else: amount_of_untouched_neigbour + 1
+
+      amount_of_untouched_neigbour + acc
+    end) * MapSet.size(region)
+  end
+
+  # we will calculate the corners
+  def calculate_price_by_sides(region) do
+    corner_candidates = candidates(region)
+
+    Enum.reduce(corner_candidates, 0, fn {ccc, ccr}, corners ->
+      config = generate_config(region, {ccc, ccr})
+
+      case Enum.count(config, fn x -> x == true end) do
+        1 ->
+          corners + 1
+
+        2 ->
+          if config == [true, false, true, false] or config == [false, true, false, true] do
+            corners + 2
+          else
+            corners
+          end
+
+        3 ->
+          corners + 1
+
+        _ ->
+          corners
+      end
+    end) * MapSet.size(region)
+  end
+
+  defp generate_config(region, {r, c}) do
+    for {rc, cc} <- [
+          {r - 0.5, c - 0.5},
+          {r + 0.5, c - 0.5},
+          {r + 0.5, c + 0.5},
+          {r - 0.5, c + 0.5}
+        ] do
+      MapSet.member?(region, {trunc(rc), trunc(cc)})
+    end
+  end
+
+  defp candidates(region) do
+    Enum.reduce(region, MapSet.new(), fn {r, c}, set ->
+      corners = [{r - 0.5, c - 0.5}, {r + 0.5, c - 0.5}, {r + 0.5, c + 0.5}, {r - 0.5, c + 0.5}]
+
+      Enum.reduce(corners, set, fn cc, set ->
+        MapSet.put(set, cc)
+      end)
+    end)
+  end
+end
+```
+
+```elixir
+regions =
+  Enum.reduce(grid, {MapSet.new(), []}, fn {point, _}, {set, regions} ->
+    if point in set do
+      {set, regions}
+    else
+      region = Solver.walk(MapSet.new(), grid, point, point)
+      set = MapSet.union(set, region)
+      {set, [region | regions]}
+    end
+  end)
+  |> then(fn {_, regions} -> regions end)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(regions, 0, fn region, acc ->
+  Solver.calculate_price(region) + acc
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(regions, 0, fn region, acc -> 
+  Solver.calculate_price_by_sides(region)  + acc
+end)
+```
