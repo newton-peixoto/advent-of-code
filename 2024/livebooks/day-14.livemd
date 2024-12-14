@@ -95,10 +95,90 @@ end)
 |> Enum.product()
 ```
 
+```elixir
+defmodule GridPrinter do
+  def print_grid(map) do
+    # Extract all the coordinates
+    coordinates = Map.keys(map)
+
+    # Determine the grid bounds
+    {min_x, max_x} = Enum.min_max(Enum.map(coordinates, fn {x, _y} -> x end))
+    {min_y, max_y} = Enum.min_max(Enum.map(coordinates, fn {_x, y} -> y end))
+
+    # Build the grid as a string
+    for y <- min_y..max_y do
+      for x <- min_x..max_x do
+        # Get the value or a default space
+        Map.get(map, {x, y}, " ")
+      end
+      # Join the row into a string
+      |> Enum.join("")
+    end
+    # Join all rows with a newline
+    |> Enum.join("\n")
+    # Print the grid
+    |> IO.puts()
+  end
+
+  def as_string(map) do
+    # Extract all the coordinates
+    coordinates = Map.keys(map)
+
+    # Determine the grid bounds
+    {min_x, max_x} = Enum.min_max(Enum.map(coordinates, fn {x, _y} -> x end))
+    {min_y, max_y} = Enum.min_max(Enum.map(coordinates, fn {_x, y} -> y end))
+
+    # Build the grid as a string
+    for y <- min_y..max_y do
+      for x <- min_x..max_x do
+        # Get the value or a default space
+        Map.get(map, {x, y}, " ")
+      end
+      # Join the row into a string
+      |> Enum.join("")
+    end
+    # Join all rows with a newline
+    |> Enum.join("\n")
+  end
+end
+```
+
 ## Part 02
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+rows = Robot.height() - 1
+cols = Robot.width() - 1
 
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, "."}
+  end
+
+{iteration, set} =
+  0
+  |> Stream.iterate(&(&1 + 1))
+  |> Enum.reduce_while({grid, MapSet.new()}, fn iteration, {grid, set} ->
+    robots = Enum.map(robots, fn robot -> Robot.position_after_seconds(robot, iteration) end)
+
+    picture =
+      Enum.reduce(robots, grid, fn robot, grid ->
+        Map.put(grid, robot.current_position, "#")
+      end)
+
+    {:ok, pid} = File.open("/advent/tree.txt", [:append])
+
+    IO.binwrite(pid, "#{iteration}\n" <> GridPrinter.as_string(picture) <> "\n\n")
+
+    cond do
+      MapSet.member?(set, picture) ->
+        {:halt, {iteration, set}}
+
+      true ->
+        set = MapSet.put(set, picture)
+
+        {:cont, {grid, set}}
+    end
+  end)
 ```
