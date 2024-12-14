@@ -1,0 +1,73 @@
+# Advent of code day 08
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Parse
+
+```elixir
+claws =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+  |> Enum.map(fn line ->
+    Regex.scan(~r/\d+/, line)
+    |> Enum.map(fn [n | []] -> String.to_integer(n) end)
+    |> List.to_tuple()
+  end)
+```
+
+```elixir
+# just brute force it, probably need to study equations for part02
+defmodule Solver do
+  def part1({ax, ay, bx, by, px, py}) do
+    for i <- 1..100,
+        j <- 1..100 do
+      if ax * i + bx * j == px and ay * i + by * j == py do
+        i * 3 + j
+      else
+        0
+      end
+    end
+    |> Enum.filter(fn x -> x != 0 end)
+    |> then(fn
+      [] -> [0]
+      list -> list
+    end)
+    |> Enum.min()
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(claws, 0, fn claw, acc ->
+  Solver.part1(claw) + acc
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
