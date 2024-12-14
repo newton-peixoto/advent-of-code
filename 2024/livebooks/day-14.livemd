@@ -1,0 +1,104 @@
+# Advent of code day 14
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Robot do
+  @max_row 103
+  @max_col 101
+
+  defstruct [:current_position, :velocity]
+
+  def position_after_seconds(
+        %__MODULE__{current_position: cp, velocity: v} = robot,
+        seconds \\ 1
+      ) do
+    {row, col} = cp
+    {vr, vc} = v
+
+    row = Integer.mod(row + vr * seconds, @max_row)
+    col = Integer.mod(col + vc * seconds, @max_col)
+
+    %{robot | current_position: {row, col}}
+  end
+
+  def height do
+    @max_row
+  end
+
+  def width do
+    @max_col
+  end
+end
+```
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [[col], [row], [vc], [vr]] = Regex.scan(~r/-?\d+(\.\d+)?/, line)
+
+    {{String.to_integer(row), String.to_integer(col)}, {String.to_integer(vr), String.to_integer(vc)}}
+    end)
+```
+
+```elixir
+robots =
+  parsed
+  |> Enum.map(fn {position, velocity} ->
+    %Robot{
+      current_position: position,
+      velocity: velocity
+    }
+  end)
+```
+
+## Part 01
+
+```elixir
+robots
+|> Enum.reduce(%{q1: 0, q2: 0, q3: 0, q4: 0}, fn robot, acc ->
+  robot = Robot.position_after_seconds(robot, 100)
+
+  row_mid = div(Robot.height(), 2)
+  col_mid = div(Robot.width(), 2)
+
+  case robot.current_position do
+    {row, col} when row < row_mid and col < col_mid -> Map.update(acc, :q1, 0, &(&1 + 1))
+    {row, col} when row < row_mid and col > col_mid -> Map.update(acc, :q2, 0, &(&1 + 1))
+    {row, col} when row > row_mid and col < col_mid -> Map.update(acc, :q3, 0, &(&1 + 1))
+    {row, col} when row > row_mid and col > col_mid -> Map.update(acc, :q4, 0, &(&1 + 1))
+    _ -> acc
+  end
+end)
+|> Map.values()
+|> Enum.product()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
