@@ -1,0 +1,160 @@
+# Advent of code day 15
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+[g, moves] =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+
+g =
+  g
+  |> String.split("\n")
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+rows = tuple_size(g) - 1
+cols = tuple_size(elem(g, 0)) - 1
+
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(g, l), c)}
+  end
+
+moves =
+  moves
+  |> String.split("\n")
+  |> Enum.join()
+  |> String.split("", trim: true)
+
+{c_pos, _ } = Enum.find(grid, fn {_k, v} -> v == "@" end)
+```
+
+```elixir
+defmodule Mover do
+  @dirs %{
+    "^" => {-1, 0},
+    ">" => {0, 1},
+    "v" => {1, 0},
+    "<" => {0, -1}
+  }
+
+  def move({r, c} = c_position, grid, move) do
+    {rr, cc} = @dirs[move]
+    future_pos = {r + rr, c + cc}
+
+    case grid[future_pos] do
+      "#" ->
+        {grid, c_position}
+
+      "." ->
+        grid =
+          Map.put(grid, c_position, ".")
+          |> Map.put(future_pos, "@")
+
+        {grid, future_pos}
+
+      "O" ->
+        coords_to_add_box =
+          0
+          |> Stream.iterate(&(&1 + 1))
+          |> Enum.reduce_while({[future_pos], future_pos}, fn _, {coords, c_pos} ->
+            {r, c} = c_pos
+            f_pos = {r + rr, c + cc}
+
+            case grid[f_pos] do
+              "#" ->
+                {:halt, :impossible}
+
+              "." ->
+                {:halt, [f_pos | coords]}
+
+              "O" ->
+                {:cont, {[f_pos | coords], f_pos}}
+            end
+          end)
+
+        if is_list(coords_to_add_box) do
+          [dot | coords_to_add_box] = Enum.reverse(coords_to_add_box)
+
+          grid = Map.put(grid, c_position, ".") |> Map.put(dot, "@")
+
+          grid =
+            Enum.reduce(coords_to_add_box, grid, fn coord, acc ->
+              Map.put(acc, coord, "O")
+            end)
+
+          {grid, future_pos}
+        else
+          {grid, c_position}
+        end
+    end
+  end
+
+  def print_grid(map) do
+    # Extract all the coordinates
+    coordinates = Map.keys(map)
+
+    # Determine the grid bounds
+    {min_x, max_x} = Enum.min_max(Enum.map(coordinates, fn {x, _y} -> x end))
+    {min_y, max_y} = Enum.min_max(Enum.map(coordinates, fn {_x, y} -> y end))
+
+    # Build the grid as a string
+    for y <- min_y..max_y do
+      for x <- min_x..max_x do
+        # Get the value or a default space
+        Map.get(map, {x, y}, " ")
+      end
+      # Join the row into a string
+      |> Enum.join("")
+    end
+    # Join all rows with a newline
+    |> Enum.join("\n")
+    # Print the grid
+    |> IO.puts()
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(moves, {grid, c_pos}, fn move, {grid, c_pos} ->
+  Mover.move(c_pos, grid, move)
+end)
+|> then(fn {g, _} ->
+  Mover.print_grid(g)
+
+  Enum.reduce(g, 0, fn
+    {{r, c}, "O"}, acc -> acc + (100 * r + c)
+    _, acc -> acc
+  end)
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
