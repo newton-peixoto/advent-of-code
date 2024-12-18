@@ -1,0 +1,101 @@
+# Advent of code day 17
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+import Bitwise
+
+[a, b, c | program] =
+  Regex.scan(~r/\d+/, Kino.Input.read(example))
+  |> Enum.map(fn [x | _] -> String.to_integer(x) end)
+
+0
+|> Stream.iterate(&(&1 + 1))
+|> Enum.reduce_while({a, b, c, program, 0, []}, fn _, {a, b, c, program, idx, output} ->
+  combo = fn op ->
+    case op do
+      op when op <= 3 -> op
+      4 -> a
+      5 -> b
+      6 -> c
+    end
+  end
+
+  if idx >= length(program) do
+    {:halt, output}
+  else
+    ins = Enum.at(program, idx)
+    operand = Enum.at(program, idx + 1)
+
+    case ins do
+      0 ->
+        a = a >>> combo.(operand)
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      1 ->
+        b = Bitwise.bxor(b, operand)
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      2 ->
+        b = Integer.mod(combo.(operand), 8)
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      3 when a != 0 ->
+        idx = operand
+        {:cont, {a, b, c, program, idx, output}}
+
+      3 ->
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      4 ->
+        b = Bitwise.bxor(b, c)
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      5 ->
+        output = output ++ [Integer.mod(combo.(operand), 8)]
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      6 ->
+        b = div(a, 2 ** combo.(operand))
+        {:cont, {a, b, c, program, idx + 2, output}}
+
+      7 ->
+        c = a >>> combo.(operand)
+        {:cont, {a, b, c, program, idx + 2, output}}
+    end
+  end
+end)
+|> Enum.join(",")
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
