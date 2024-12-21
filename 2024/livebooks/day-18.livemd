@@ -45,29 +45,6 @@ grid =
 ```
 
 ```elixir
-defmodule GridPrinter do
-  def print_grid(map) do
-    # Extract all the coordinates
-    coordinates = Map.keys(map)
-
-    # Determine the grid bounds
-    {min_x, max_x} = Enum.min_max(Enum.map(coordinates, fn {x, _y} -> x end))
-    {min_y, max_y} = Enum.min_max(Enum.map(coordinates, fn {_x, y} -> y end))
-
-    # Build the grid as a string
-    for y <- min_y..max_y do
-      for x <- min_x..max_x do
-        Map.get(map, {x, y}, " ") # Get the value or a default space
-      end
-      |> Enum.join("")           # Join the row into a string
-    end
-    |> Enum.join("\n")           # Join all rows with a newline
-    |> IO.puts                   # Print the grid
-  end
-end
-```
-
-```elixir
 defmodule Solver do
   @dirs [
     # up 
@@ -121,7 +98,7 @@ defmodule Solver do
         end)
 
       case go do
-        {_seen, [], grid, _d} -> {:halt, {:ok, d, grid}}
+        {_seen, [], _grid, _d} -> {:halt, {:error, :no_path}}
         {seen, queue, grid, d} -> {:cont, {seen, queue, grid, d}}
         {:ok, d, grid} -> {:halt, {:ok, d, grid}}
       end
@@ -145,5 +122,18 @@ d
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+grid =
+  Enum.reduce_while(1024..(length(coords) - 1), grid, fn i, grid ->
+    {c, r} = Enum.at(coords, i)
+    grid = Map.put(grid, {r, c}, "#")
 
+    case Solver.walk(grid) do
+      {:ok, _, _} ->
+        {:cont, grid}
+
+      {:error, _} ->
+        {:halt, i}
+    end
+  end)
+  |> then(fn x -> Enum.at(coords, x) end)
 ```
