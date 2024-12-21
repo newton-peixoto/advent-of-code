@@ -1,0 +1,149 @@
+# Advent of code day 18
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+lines = 70
+cols = 70
+
+grid =
+  for l <- 0..lines, c <- 0..cols, into: %{} do
+    {{l, c}, "."}
+  end
+
+coords =
+  Kino.Input.read(example)
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn
+    coord ->
+      [c, r] = String.split(coord, ",", trim: true)
+
+      {String.to_integer(r), String.to_integer(c)}
+  end)
+
+grid =
+  Enum.reduce(0..1024, grid, fn i, grid ->
+    {c, r} = Enum.at(coords, i)
+    Map.put(grid, {r, c}, "#")
+  end)
+```
+
+```elixir
+defmodule GridPrinter do
+  def print_grid(map) do
+    # Extract all the coordinates
+    coordinates = Map.keys(map)
+
+    # Determine the grid bounds
+    {min_x, max_x} = Enum.min_max(Enum.map(coordinates, fn {x, _y} -> x end))
+    {min_y, max_y} = Enum.min_max(Enum.map(coordinates, fn {_x, y} -> y end))
+
+    # Build the grid as a string
+    for y <- min_y..max_y do
+      for x <- min_x..max_x do
+        Map.get(map, {x, y}, " ") # Get the value or a default space
+      end
+      |> Enum.join("")           # Join the row into a string
+    end
+    |> Enum.join("\n")           # Join all rows with a newline
+    |> IO.puts                   # Print the grid
+  end
+end
+```
+
+```elixir
+defmodule Solver do
+  @dirs [
+    # up 
+    {1, 0},
+    # right
+    {0, 1},
+    # down 
+    {-1, 0},
+    # left 
+    {0, -1}
+  ]
+
+  @dest {70, 70}
+
+  def walk(grid) do
+    0
+    |> Stream.iterate(&(&1 + 1))
+    |> Enum.reduce_while({MapSet.new(), [{{0, 0}, 0}], grid, 0}, fn _, {seen, queue, grid, _d} ->
+      [{{r, c}, d} | tail] = queue
+
+      new_positions =
+        Enum.map(@dirs, fn {y, x} ->
+          {r + y, c + x}
+        end)
+
+      go =
+        Enum.reduce(new_positions, {seen, tail, grid, d}, fn
+          _, {:ok, d, grid} ->
+            {:ok, d, grid}
+
+          {nr, nc}, {seen, tail, grid, d} ->
+            cond do
+              nr < 0 or nc < 0 or nr > 70 or nc > 70 ->
+                {seen, tail, grid, d}
+
+              grid[{nr, nc}] == "#" ->
+                {seen, tail, grid, d}
+
+              MapSet.member?(seen, {nr, nc}) ->
+                {seen, tail, grid, d}
+
+              {nr, nc} == @dest ->
+                {:ok, d + 1, grid}
+
+              true ->
+                seen = MapSet.put(seen, {nr, nc})
+                queue = tail ++ [{{nr, nc}, d + 1}]
+                grid = Map.put(grid, {nr, nc}, "0")
+                {seen, queue, grid, d}
+            end
+        end)
+
+      case go do
+        {_seen, [], grid, _d} -> {:halt, {:ok, d, grid}}
+        {seen, queue, grid, d} -> {:cont, {seen, queue, grid, d}}
+        {:ok, d, grid} -> {:halt, {:ok, d, grid}}
+      end
+    end)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{:ok, d, grid} = Solver.walk(grid)
+
+d
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
