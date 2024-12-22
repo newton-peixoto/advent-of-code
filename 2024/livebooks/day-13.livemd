@@ -33,23 +33,17 @@ claws =
 ```
 
 ```elixir
-# just brute force it, probably need to study equations for part02
 defmodule Solver do
-  def part1({ax, ay, bx, by, px, py}) do
-    for i <- 1..100,
-        j <- 1..100 do
-      if ax * i + bx * j == px and ay * i + by * j == py do
-        i * 3 + j
-      else
-        0
-      end
-    end
-    |> Enum.filter(fn x -> x != 0 end)
-    |> then(fn
-      [] -> [0]
-      list -> list
-    end)
-    |> Enum.min()
+  # nice!
+  def crammer_rule({ax, ay, bx, by, px, py}) do
+    det = ax * by - bx * ay
+    x = px * by - bx * py
+    y = ax * py - px * ay
+
+    # ensure its a integer 
+    if det == 0 or rem(x, det) != 0 or rem(y, det) != 0,
+      do: 0,
+      else: 3 * div(x, det) + div(y, det)
   end
 end
 ```
@@ -60,7 +54,7 @@ end
 
 ```elixir
 Enum.reduce(claws, 0, fn claw, acc ->
-  Solver.part1(claw) + acc
+  Solver.crammer_rule(claw) + acc
 end)
 ```
 
@@ -69,5 +63,9 @@ end)
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-
+Enum.reduce(claws, 0, fn claw, acc ->
+  {ax, ay, bx, by, px, py} = claw
+  claw = {ax, ay, bx, by, px + 10_000_000_000_000, py + 10_000_000_000_000}
+  Solver.crammer_rule(claw) + acc
+end)
 ```
