@@ -1,0 +1,64 @@
+# Advent of code day 23
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+conns =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn <<e::binary-size(2), "-", ee::binary-size(2)>> ->
+    {e, ee}
+  end)
+  |> Enum.reduce(%{}, fn {e, ee}, acc ->
+    e_set = Map.get(acc, e, MapSet.new())
+    ee_set = Map.get(acc, ee, MapSet.new())
+
+    Map.put(acc, e, MapSet.put(e_set, ee)) |> Map.put(ee, MapSet.put(ee_set, e))
+  end)
+
+for {x, _} <- conns,
+    y <- Map.get(conns, x),
+    z <- Map.get(conns, y) do
+  if x != z and x in conns[z], do: [x, y, z] |> Enum.sort() |> List.to_tuple(), else: nil
+end
+|> Enum.reject(&(&1 == nil))
+|> Enum.uniq()
+|> Enum.reduce(0, fn {_, _, _} = t, acc ->
+  possible =
+    Tuple.to_list(t)
+    |> Enum.any?(fn e ->
+      String.starts_with?(e, "t")
+    end)
+
+  if possible, do: acc + 1, else: acc
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
