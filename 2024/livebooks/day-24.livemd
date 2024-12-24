@@ -1,0 +1,98 @@
+# Advent of code day 24
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+[coords, formulas] =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+
+known =
+  String.split(coords, "\n", trim: true)
+  |> Enum.map(fn el ->
+    [key, value] = String.split(el, ": ")
+
+    {key, String.to_integer(value)}
+  end)
+  |> Enum.into(%{})
+
+formulas =
+  formulas
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn f ->
+    [x, op, y, dest] = String.replace(f, " -> ", " ") |> String.split(" ")
+
+    {dest, {op, x, y}}
+  end)
+  |> Enum.into(%{})
+```
+
+```elixir
+defmodule Solver do
+  def calc(key, formulas, known) do
+    if Map.has_key?(known, key) do
+      known[key]
+    else
+      {op, x, y} = formulas[key]
+      known = Map.put(known, key, op(op, calc(x, formulas, known), calc(y, formulas, known)))
+
+      known[key]
+    end
+  end
+
+  defp op(op, x, y) do
+    %{
+      "AND" => fn x, y -> Bitwise.band(x, y) end,
+      "OR" => fn x, y -> Bitwise.bor(x, y) end,
+      "XOR" => fn x, y -> Bitwise.bxor(x, y) end
+    }[op].(x, y)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Solver.calc("z01", formulas, known)
+
+0
+|> Stream.iterate(&(&1 + 1))
+|> Enum.reduce_while([], fn i, acc ->
+  z_wire = "z" <> String.pad_leading(Integer.to_string(i), 2, "0")
+
+  if not Map.has_key?(formulas, z_wire) do
+    {:halt, acc}
+  else
+    {:cont, [Solver.calc(z_wire, formulas, known) | acc]}
+  end
+end)
+|> Enum.join()
+|> Integer.parse(2)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
