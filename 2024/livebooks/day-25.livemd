@@ -1,0 +1,67 @@
+# Advent of code day 25
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+heights = example
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+  |> Enum.map(&String.split(&1,"\n"))
+  |>  Enum.reduce(%{locks: [], keys: []}, fn grid, acc ->
+  grid = [row | _] = grid |> Enum.map(&String.graphemes/1)
+  flipped = Enum.zip(grid) |> Enum.map(&Tuple.to_list/1)
+
+  case row do
+    ["#", "#", "#", "#", "#"] ->
+      lock =
+        Enum.map(flipped, fn r ->
+          Enum.count(r, fn x -> x == "#" end) - 1
+        end)
+
+      %{acc | locks: acc.locks ++ [lock]}
+
+    _ ->
+      key =
+        Enum.map(flipped, fn r ->
+          Enum.count(r, fn x -> x == "#" end) - 1
+        end)
+
+      %{acc | keys: acc.keys ++ [key]}
+  end
+end)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+for lock <- heights.locks,
+    key <- heights.keys do
+  if Enum.all?(Enum.zip(lock, key), fn {l, k} -> l + k <= 5 end), do: 1, else: 0
+end |> Enum.sum
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
