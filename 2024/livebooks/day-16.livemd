@@ -1,0 +1,97 @@
+# Advent of code day 16
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+parsed =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+lines = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..lines, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+
+
+{start_position, _ } = Enum.find(grid, fn {_, v} -> v == "S" end)
+{end_position, _ } = Enum.find(grid, fn {_, v} -> v == "E" end)
+```
+
+```elixir
+defmodule Dijkstra do
+  def solve(graph, origin, destination) when is_map(graph) do
+    shortest_path(graph, [{0, {0, 1}, [origin]}], destination, MapSet.new())
+  end
+
+  def shortest_path(_graph, [] = _path, _destination, _visited) do
+    {0, []}
+  end
+
+  def shortest_path(_graph, [{cost, _dir, [destination | _] = path} | _], destination, _visited) do
+    {cost, :lists.reverse(path)}
+  end
+
+  def shortest_path(graph, [{cost, {dr, dc}, [{r, c} | _] = path} | routes], destination, visited) do
+    visited = MapSet.put(visited, {r, c, dr, dc})
+
+    new_routes =
+      for {new_cost, {nr, nc}, {ndr, ndc}} <- [
+            {1, {r + dr, c + dc}, {dr, dc}},
+            {1000, {r, c}, {dc, -dr}},
+            {1000, {r, c}, {-dc, dr}}
+          ],
+          not MapSet.member?(visited, {nr, nc, ndr, ndc}) do
+        if graph[{r,c}] == "#" do
+          nil
+        else
+          {cost + new_cost, {ndr, ndc}, [{nr, nc} | path]} 
+      end
+      end |> Enum.reject(&(&1==nil))
+
+    shortest_path(
+      graph,
+      :lists.sort(new_routes ++ routes),
+      destination,
+      visited
+    )
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Dijkstra.solve(grid, start_position, end_position) |> then(fn {cost, _ } -> cost end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
