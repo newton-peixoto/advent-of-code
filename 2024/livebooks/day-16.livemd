@@ -53,6 +53,8 @@ defmodule Dijkstra do
     {cost, :lists.reverse(path)}
   end
 
+  ## this is VERY VERY SLOW 
+  ## must come back later and implement a priority queue somehow. 
   def shortest_path(graph, [{cost, {dr, dc}, [{r, c} | _] = path} | routes], destination, visited) do
     visited = MapSet.put(visited, {r, c, dr, dc})
 
