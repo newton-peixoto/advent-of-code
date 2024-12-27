@@ -40,9 +40,112 @@ grid =
 ```
 
 ```elixir
+defmodule PriorityQueue do
+  @moduledoc """
+  A stateless priority queue implementation basing on pairing heap.
+  """
+
+  @initial_serial -Bitwise.bsl(1, 64)
+
+  defstruct size: 0,
+            serial: @initial_serial,
+            heap: nil,
+            key_fun: nil
+
+  @typep serial :: integer()
+  @typep pairing_heap(key, value) :: nil | {{key, serial()}, value, [pairing_heap(key, value)]}
+  @opaque t(key, value) :: %__MODULE__{
+            size: non_neg_integer,
+            serial: serial(),
+            heap: pairing_heap(key, value),
+            key_fun: (value -> key)
+          }
+
+  @doc """
+  Create an empty priority queue.
+  """
+  @spec new((value -> key)) :: t(key, value) when key: any(), value: any()
+  def new(key_fun \\ nil), do: %__MODULE__{key_fun: key_fun || (& &1)}
+
+  @doc """
+  Get the size of a priority queue.
+  """
+  @spec size(t(any, any)) :: non_neg_integer()
+  def size(%__MODULE__{size: size}), do: size
+
+  @doc """
+  Put an item into a priority queue.
+  Returns a new priority queue.
+  """
+  @spec push(t(key, value), value) :: t(key, value) when key: any(), value: any()
+  def push(%__MODULE__{size: size, heap: heap, key_fun: key_fun, serial: serial} = pq, value) do
+    %{pq | size: size + 1, heap: meld(heap, to_heap(value, key_fun, serial)), serial: serial + 1}
+  end
+
+  @doc """
+  Get and delete the smallest item in the priority queue.
+  If the queue is empty, returns `{:error, :empty}`,
+  otherwise returns `{:ok, smallest_item, new_priority_queue}`.
+  """
+  @spec pop(t(key, value)) :: {:ok, value, t(key, value)} | {:error, :empty}
+        when key: any(), value: any()
+  def pop(%__MODULE__{size: 0}), do: {:error, :empty}
+
+  def pop(%__MODULE__{size: size, heap: {_key, value, sub_heaps}} = pq) do
+    {:ok, value, %{pq | size: size - 1, heap: pair(sub_heaps)}}
+  end
+
+  @doc """
+  Get the smallest element in the priority queue.
+  """
+  @spec top(t(key, value)) :: {:ok, value} | {:error, :empty}
+        when key: any(), value: any()
+  def top(%__MODULE__{size: 0}), do: {:error, :empty}
+  def top(%__MODULE__{heap: {_, value, _}}), do: {:ok, value}
+
+  @doc """
+  Merge two priority queues. Crashes if the given priority queues have different key functions.
+  """
+  @spec merge!(t(key, value), t(key, value)) :: t(key, value)
+        when key: any(), value: any()
+  def merge!(%__MODULE__{key_fun: f} = pq1, %__MODULE__{key_fun: f} = pq2) do
+    %__MODULE__{
+      key_fun: f,
+      serial: max(pq1.serial, pq2.serial),
+      size: pq1.size + pq2.size,
+      heap: meld(pq1.heap, pq2.heap)
+    }
+  end
+
+  def merge!(%__MODULE__{}, %__MODULE__{}) do
+    raise ArgumentError, "Can't merge priority queues with different key functions."
+  end
+
+  defp to_heap(value, key_fun, serial) do
+    {{key_fun.(value), serial}, value, []}
+  end
+
+  @spec meld(pairing_heap(key, value), pairing_heap(key, value)) :: pairing_heap(key, value)
+        when key: any(), value: any()
+  defp meld(nil, heap), do: heap
+  defp meld(heap, nil), do: heap
+  defp meld({k1, v1, sub1}, {k2, _v2, _sub2} = heap2) when k1 < k2, do: {k1, v1, [heap2 | sub1]}
+  defp meld(heap1, {k2, v2, sub2}), do: {k2, v2, [heap1 | sub2]}
+
+  @spec pair([pairing_heap(key, value)]) :: pairing_heap(key, value)
+        when key: any(), value: any()
+  defp pair([]), do: nil
+  defp pair([node]), do: node
+  defp pair([node1, node2 | rest]), do: meld(meld(node2, node1), pair(rest))
+end
+
+```
+
+```elixir
 defmodule Dijkstra do
   def solve(graph, origin, destination) when is_map(graph) do
-    shortest_path(graph, [{0, {0, 1}, [origin]}], destination, MapSet.new())
+    pq = PriorityQueue.new() |> PriorityQueue.push({0, {0, 1}, [origin]})
+    shortest_path(graph, pq, destination, MapSet.new())
   end
 
   def shortest_path(_graph, [] = _path, _destination, _visited) do
@@ -53,31 +156,37 @@ defmodule Dijkstra do
     {cost, :lists.reverse(path)}
   end
 
-  ## this is VERY VERY SLOW 
-  ## must come back later and implement a priority queue somehow. 
-  def shortest_path(graph, [{cost, {dr, dc}, [{r, c} | _] = path} | routes], destination, visited) do
-    visited = MapSet.put(visited, {r, c, dr, dc})
 
-    new_routes =
-      for {new_cost, {nr, nc}, {ndr, ndc}} <- [
-            {1, {r + dr, c + dc}, {dr, dc}},
-            {1000, {r, c}, {dc, -dr}},
-            {1000, {r, c}, {-dc, dr}}
-          ],
-          not MapSet.member?(visited, {nr, nc, ndr, ndc}) do
-        if graph[{r,c}] == "#" do
-          nil
-        else
-          {cost + new_cost, {ndr, ndc}, [{nr, nc} | path]} 
-      end
-      end |> Enum.reject(&(&1==nil))
+  def shortest_path(graph, pq, destination, visited) do
+    {:ok, {cost, {dr, dc}, [{r, c} | _] = path}, pq} = PriorityQueue.pop(pq)
 
-    shortest_path(
-      graph,
-      :lists.sort(new_routes ++ routes),
-      destination,
-      visited
-    )
+    if {r, c} == destination do
+      {:ok, cost, path}
+    else
+      visited = MapSet.put(visited, {r, c, dr, dc})
+
+      pq =
+        for {new_cost, {nr, nc}, {ndr, ndc}} <- [
+              {1, {r + dr, c + dc}, {dr, dc}},
+              {1000, {r, c}, {dc, -dr}},
+              {1000, {r, c}, {-dc, dr}}
+            ],
+            not MapSet.member?(visited, {nr, nc, ndr, ndc}),
+            graph[{r, c}] !== "#" do
+          {cost + new_cost, {ndr, ndc}, [{nr, nc} | path]}
+        end
+        |> Enum.reject(&(&1 == nil))
+        |> Enum.reduce(pq, fn new_route, p ->
+          PriorityQueue.push(p, new_route)
+        end)
+
+      shortest_path(
+        graph,
+        pq,
+        destination,
+        visited
+      )
+    end
   end
 end
 ```
@@ -87,7 +196,7 @@ end
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-Dijkstra.solve(grid, start_position, end_position) |> then(fn {cost, _ } -> cost end)
+Dijkstra.solve(grid, start_position, end_position)
 ```
 
 ## Part 02
