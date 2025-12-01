@@ -129,15 +129,26 @@ defmodule PriorityQueue do
         when key: any(), value: any()
   defp meld(nil, heap), do: heap
   defp meld(heap, nil), do: heap
-  defp meld({k1, v1, sub1}, {k2, _v2, _sub2} = heap2) when k1 < k2, do: {k1, v1, [heap2 | sub1]}
-  defp meld(heap1, {k2, v2, sub2}), do: {k2, v2, [heap1 | sub2]}
+  defp meld({k1, v1, sub1}, {k2, _v2, _sub2} = heap2) when k1 < k2, do: {k1, v1, [heap2 | sub1]} |> IO.inspect(label: :bigger)
+  defp meld(heap1, {k2, v2, sub2}), do: {k2, v2, [heap1 | sub2]} |> IO.inspect(label: :smaller)
 
   @spec pair([pairing_heap(key, value)]) :: pairing_heap(key, value)
         when key: any(), value: any()
   defp pair([]), do: nil
-  defp pair([node]), do: node
-  defp pair([node1, node2 | rest]), do: meld(meld(node2, node1), pair(rest))
+  defp pair([node]), do: node |> IO.inspect(label: :end_pair)
+  defp pair([node1, node2 | rest]), do: meld(meld(node2, node1), pair(rest)) |> IO.inspect(label: :pair_recursion)
 end
+
+```
+
+```elixir
+
+pq2=  PriorityQueue.new() 
+  |> PriorityQueue.push(1)
+  |> PriorityQueue.push(-1)
+  |> PriorityQueue.push(3)
+
+
 
 ```
 
@@ -148,16 +159,7 @@ defmodule Dijkstra do
     shortest_path(graph, pq, destination, MapSet.new())
   end
 
-  def shortest_path(_graph, [] = _path, _destination, _visited) do
-    {0, []}
-  end
-
-  def shortest_path(_graph, [{cost, _dir, [destination | _] = path} | _], destination, _visited) do
-    {cost, :lists.reverse(path)}
-  end
-
-
-  def shortest_path(graph, pq, destination, visited) do
+  defp shortest_path(graph, pq, destination, visited) do
     {:ok, {cost, {dr, dc}, [{r, c} | _] = path}, pq} = PriorityQueue.pop(pq)
 
     if {r, c} == destination do
@@ -175,7 +177,6 @@ defmodule Dijkstra do
             graph[{r, c}] !== "#" do
           {cost + new_cost, {ndr, ndc}, [{nr, nc} | path]}
         end
-        |> Enum.reject(&(&1 == nil))
         |> Enum.reduce(pq, fn new_route, p ->
           PriorityQueue.push(p, new_route)
         end)
@@ -191,9 +192,76 @@ defmodule Dijkstra do
 end
 ```
 
-## Part 01
+```elixir
+defmodule PriorityQueue2 do
+  @moduledoc """
+  A stateless priority queue implementation basing on pairing heap.
+  """
 
-<!-- livebook:{"reevaluate_automatically":true} -->
+  defstruct size: 0,
+            heap: nil
+
+  def new(), do: %__MODULE__{}
+
+  def size(%__MODULE__{size: size}), do: size
+
+  def push(%__MODULE__{size: size, heap: heap} = pq, value) do
+    %{pq | size: size + 1, heap: meld(heap, to_heap(value))}
+  end
+
+  def pop(%__MODULE__{size: 0}), do: {:error, :empty}
+
+  def pop(%__MODULE__{size: size, heap: {_key, value, sub_heaps}} = pq) do
+    IO.inspect "removing #{value}"
+    {:ok, value, %{pq | size: size - 1, heap: pair(sub_heaps)}}
+  end
+
+  def top(%__MODULE__{size: 0}), do: {:error, :empty}
+  def top(%__MODULE__{heap: {_, value, _}}), do: {:ok, value}
+
+  defp to_heap(value) do
+    {value, value, []}
+  end
+
+  defp meld(nil, heap), do: heap
+  defp meld(heap, nil), do: heap
+
+  defp meld({k1, v1, sub1}, {k2, _v2, _sub2} = heap2) when k1 < k2 do
+    IO.inspect("#{k1} is smaller than #{k2}")
+    {k1, v1, [heap2 | sub1]}
+  end
+
+  defp meld({k1, _v2, _sub2} = heap1, {k2, v2, sub2}) do
+    IO.inspect("#{k1} is bigger than #{k2}")
+    {k2, v2, [heap1 | sub2]}
+  end
+
+  defp pair([]), do: nil
+  defp pair([node]), do: node
+
+  defp pair([node1, node2 | rest]) do
+    IO.inspect("we are creating out tree again")
+    IO.inspect(node1)
+    IO.inspect(node2)
+
+    meld(meld(node2, node1), pair(rest))
+  end
+end
+```
+
+```elixir
+
+pq2=  PriorityQueue2.new() 
+  |> PriorityQueue2.push(1)
+  |> PriorityQueue2.push(-1)
+  |> PriorityQueue2.push(3)
+|> PriorityQueue2.pop()
+
+
+
+```
+
+## Part 01
 
 ```elixir
 Dijkstra.solve(grid, start_position, end_position)

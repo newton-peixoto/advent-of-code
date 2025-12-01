@@ -1,0 +1,63 @@
+# Advent of code day 01
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data =
+  example
+  |> Kino.Input.read()
+  |> String.split()
+  |> Enum.map(fn
+    "L" <> number -> String.to_integer(number) * -1
+    "R" <> number -> String.to_integer(number)
+  end)
+
+Enum.reduce(data, {50, 0}, fn el, {sum, resp} = _acc ->
+  case rem(el + sum, 100) do
+    0 -> {el + sum, resp + 1}
+    _ -> {el + sum, resp}
+  end
+end)
+|> then(fn {_, resp} -> resp end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(data, {50, 0}, fn el, {pos, resp} ->
+  new_pos = Integer.mod(el + pos, 100)
+
+  crosses =
+    if el > 0 do
+      for s <- 1..el, rem(pos + s, 100) == 0, do: :hit
+    else
+      for s <- 1..-el, rem(pos - s, 100) == 0, do: :hit
+    end
+    |> length()
+
+  {new_pos, resp + crosses}
+end)
+|> then(fn {_, resp} -> resp end)
+```
