@@ -25,10 +25,11 @@ input = Kino.Input.textarea("Please paste your real input:")
 ```elixir
 repeated? = fn s ->
   len = String.length(s)
-  rem(len, 2) == 0 and not String.starts_with?(s, "0") and
-    String.slice(s, 0, div(len, 2)) == String.slice(s, div(len, 2), div(len, 2))
+  rem(len, 2) == 0 and
+    not String.starts_with?(s, "0") and
+    String.slice(s, 0, div(len, 2)) ==
+      String.slice(s, div(len, 2), div(len, 2))
 end
-
 
 example
 |> Kino.Input.read()
@@ -37,11 +38,21 @@ example
   [a, b] = part |> String.split("-") |> Enum.map(&String.trim(&1) |> String.to_integer)
   Enum.to_list(a..b)
 end)
-|> Enum.filter(fn n -> repeated?.(Integer.to_string(n)) end)
-|> Enum.sum
-
-
-
+|> Enum.chunk_every(50_000) 
+|> Task.async_stream(
+     fn chunk ->
+       Enum.reduce(chunk, 0, fn n, acc ->
+         if repeated?.(Integer.to_string(n)) do
+           acc + n
+         else
+           acc
+         end
+       end)
+     end,
+     max_concurrency: System.schedulers_online(),
+     timeout: :infinity
+   )
+|> Enum.reduce(0, fn {:ok, partial_sum}, acc -> acc + partial_sum end)
 
 ```
 
@@ -77,7 +88,21 @@ example
   [a, b] = part |> String.split("-") |> Enum.map(&String.trim(&1) |> String.to_integer)
   Enum.to_list(a..b)
 end)
-  |> Enum.filter(fn n -> Repeatter.repeats?(Integer.to_string(n) |> String.split("", trim: true)) end)
-|> Enum.sum
+# 🔥 chunk the numbers so concurrency is beneficial
+|> Enum.chunk_every(50_000)        # adjust if needed
+|> Task.async_stream(
+     fn chunk ->
+       Enum.reduce(chunk, 0, fn n, acc ->
+         if Repeatter.repeats?(Integer.to_string(n) |> String.split("", trim: true)) do
+           acc + n
+         else
+           acc
+         end
+       end)
+     end,
+     max_concurrency: System.schedulers_online(),
+     timeout: :infinity
+   )
+|> Enum.reduce(0, fn {:ok, partial_sum}, acc -> acc + partial_sum end)
 
 ```
