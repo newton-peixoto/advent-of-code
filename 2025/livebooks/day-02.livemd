@@ -88,8 +88,7 @@ example
   [a, b] = part |> String.split("-") |> Enum.map(&String.trim(&1) |> String.to_integer)
   Enum.to_list(a..b)
 end)
-# 🔥 chunk the numbers so concurrency is beneficial
-|> Enum.chunk_every(50_000)        # adjust if needed
+|> Enum.chunk_every(50_000)    
 |> Task.async_stream(
      fn chunk ->
        Enum.reduce(chunk, 0, fn n, acc ->

@@ -1,0 +1,99 @@
+# Advent of code day 03
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"},
+  {:vega_lite, "~> 0.1.8"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Solver do
+  def max_subseq_k(seq, k) do
+    n = length(seq)
+
+    stack =
+      seq
+      |> Enum.with_index()
+      |> Enum.reduce([], fn {digit, i}, stack ->
+        remaining = n - i
+
+        stack =
+          Enum.reduce_while(stack, stack, fn top, acc ->
+            cond do
+              length(acc) + remaining <= k ->
+                #   IO.inspect(
+                #     "Devo adicionar todos os numeros que vierem #{inspect(acc)}"
+                #   )
+
+                {:halt, acc}
+
+              top < digit ->
+                # IO.inspect("removendo #{hd(acc)} pois #{top} < #{digit}")
+                {:cont, tl(acc)}
+
+              true ->
+                {:halt, acc}
+            end
+          end)
+
+        # IO.inspect("adicionando  #{digit}")
+        [digit | stack]
+      end)
+
+    stack
+    |> Enum.reverse()
+    |> Enum.take(k)
+    |> Enum.join("")
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+numbers = example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn el -> String.split(el, "", trim: true) end )
+
+
+
+numbers
+  |> Enum.map(fn seq ->
+    seq
+    |> Solver.max_subseq_k(2)
+    |> String.to_integer()
+  end)
+  |> Enum.sum()
+
+
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+numbers
+  |> Enum.map(fn seq ->
+    seq
+    |> Solver.max_subseq_k(12)
+    |> String.to_integer()
+  end)
+  |> Enum.sum()
+```
