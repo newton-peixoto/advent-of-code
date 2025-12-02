@@ -1,0 +1,83 @@
+# Advent of code day 02
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+repeated? = fn s ->
+  len = String.length(s)
+  rem(len, 2) == 0 and not String.starts_with?(s, "0") and
+    String.slice(s, 0, div(len, 2)) == String.slice(s, div(len, 2), div(len, 2))
+end
+
+
+example
+|> Kino.Input.read()
+|> String.split(",")
+|> Enum.flat_map(fn part ->
+  [a, b] = part |> String.split("-") |> Enum.map(&String.trim(&1) |> String.to_integer)
+  Enum.to_list(a..b)
+end)
+|> Enum.filter(fn n -> repeated?.(Integer.to_string(n)) end)
+|> Enum.sum
+
+
+
+
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+# Cute little trick from elixir forum, beautiful 
+defmodule Repeatter do 
+  
+  def repeats?([a, a]), do: true
+  def repeats?([a, a, a]), do: true
+  def repeats?([a, b, a, b]), do: true
+  def repeats?([a, a, a, a, a]), do: true
+  def repeats?([a, b, a, b, a, b]), do: true
+  def repeats?([a, b, c, a, b, c]), do: true
+  def repeats?([a, a, a, a, a, a, a]), do: true
+  def repeats?([a, b, a, b, a, b, a, b]), do: true
+  def repeats?([a, b, c, d, a, b, c, d]), do: true
+  def repeats?([a, a, a, a, a, a, a, a, a]), do: true
+  def repeats?([a, b, c, a, b, c, a, b, c]), do: true
+  def repeats?([a, b, a, b, a, b, a, b, a, b]), do: true
+  def repeats?([a, b, c, d, e, a, b, c, d, e]), do: true
+  def repeats?(_), do: false
+
+end
+
+example
+|> Kino.Input.read()
+|> String.split(",")
+|> Enum.flat_map(fn part ->
+  [a, b] = part |> String.split("-") |> Enum.map(&String.trim(&1) |> String.to_integer)
+  Enum.to_list(a..b)
+end)
+  |> Enum.filter(fn n -> Repeatter.repeats?(Integer.to_string(n) |> String.split("", trim: true)) end)
+|> Enum.sum
+
+```
