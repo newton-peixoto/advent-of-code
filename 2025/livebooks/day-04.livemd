@@ -1,0 +1,127 @@
+# Advent of code day 04
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Grid do
+  def solve(grid) do
+    rows = tuple_size(grid)
+    cols = tuple_size(elem(grid, 0))
+
+    {count, new_grid} =
+      for row <- 0..(rows - 1), reduce: {0, grid} do
+        {acc_count, acc_grid} ->
+          {row_updates, row_count} =
+            for col <- 0..(cols - 1), reduce: {[], 0} do
+              {cells, ccount} ->
+                current = elem(grid, row) |> elem(col)
+
+                if current == "@" do
+                  neighbors = count_neighbors(grid, row, col)
+
+                  if neighbors < 4 do
+                    {["." | cells], ccount + 1}
+                  else
+                    {[current | cells], ccount}
+                  end
+                else
+                  {[current | cells], ccount}
+                end
+            end
+
+          new_row = row_updates |> Enum.reverse() |> List.to_tuple()
+
+          {
+            acc_count + row_count,
+            put_in_tuple(acc_grid, row, new_row)
+          }
+      end
+
+    {count, new_grid}
+  end
+
+  defp put_in_tuple(tuple, index, value),
+    do: tuple |> Tuple.delete_at(index) |> Tuple.insert_at(index, value)
+
+  defp count_neighbors(grid, row, col) do
+    max_row = tuple_size(grid) - 1
+    max_col = tuple_size(elem(grid, 0)) - 1
+
+    directions()
+    |> Enum.count(fn {dr, dc} ->
+      nr = row + dr
+      nc = col + dc
+
+      nr >= 0 and nr <= max_row and
+        nc >= 0 and nc <= max_col and
+        elem(elem(grid, nr), nc) == "@"
+    end)
+  end
+
+  defp directions do
+    [
+      {-1, -1},
+      {-1, 0},
+      {-1, 1},
+      {0, -1},
+      {0, 1},
+      {1, -1},
+      {1, 0},
+      {1, 1}
+    ]
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+grid =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    line
+    |> String.split("", trim: true)
+    |> List.to_tuple()
+  end)
+  |> List.to_tuple()
+
+Grid.solve(grid)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{counter, grid} = Grid.solve(grid)
+
+Stream.iterate(0, &(&1 + 1))
+|> Enum.reduce_while({counter, grid}, fn _i, {total, grid_acc} ->
+  {c, new_grid} = Grid.solve(grid_acc)
+
+  case c do
+    0 -> {:halt, {total, new_grid}}
+    _ -> {:cont, {total + c, new_grid}}
+  end
+end)
+```
