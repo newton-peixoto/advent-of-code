@@ -1,0 +1,61 @@
+# Advent of code day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+[ranges | [ids | []]] =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+
+ranges =
+  ranges
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x ->
+    String.split(x, "-", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+  |> Enum.map(fn [x, y] -> x..y end)
+
+ids =
+  ids
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce(ids, 0, fn id, acc ->
+  case Enum.any?(ranges, fn range -> id in range end) do
+    false -> acc
+    true -> acc + 1
+  end
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
