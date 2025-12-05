@@ -24,7 +24,7 @@ input = Kino.Input.textarea("Please paste your real input:")
   |> Kino.Input.read()
   |> String.split("\n\n")
 
-ranges =
+rangess =
   ranges
   |> String.split("\n", trim: true)
   |> Enum.map(fn x ->
@@ -45,7 +45,7 @@ ids =
 
 ```elixir
 Enum.reduce(ids, 0, fn id, acc ->
-  case Enum.any?(ranges, fn range -> id in range end) do
+  case Enum.any?(rangess, fn range -> id in range end) do
     false -> acc
     true -> acc + 1
   end
@@ -57,5 +57,29 @@ end)
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+[start | tail] =
+  ranges =
+  ranges
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x ->
+    String.split(x, "-", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+  |> Enum.sort_by(fn [start, _nd] -> start end)
 
+# merge intervals, leetcode classical
+Enum.reduce(tail, {start}, fn [cs, cf], output ->
+  index = tuple_size(output) - 1
+  [lastStart, lastEnd] = elem(output, index)
+
+  if cs <= lastEnd do
+    output |> Tuple.delete_at(index) |> Tuple.insert_at(index, [lastStart, max(cf, lastEnd)])
+  else
+    Tuple.insert_at(output, index + 1, [cs, cf])
+  end
+end)
+|> Tuple.to_list()
+# inclusive 
+|> Enum.map(fn [s, e] -> e - s + 1 end)
+|> Enum.sum()
 ```
