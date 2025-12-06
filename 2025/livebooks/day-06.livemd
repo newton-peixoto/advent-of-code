@@ -1,0 +1,93 @@
+# Advent of code day 06
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+example
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split(&1, " ", trim: true))
+|> Enum.zip_with(&Function.identity/1)
+|> Enum.reduce(0, fn list, acc ->
+  [operator | nums] = Enum.reverse(list)
+
+  case operator do
+    "*" ->
+      Enum.map(nums, &String.to_integer/1)
+      |> Enum.reduce(1, fn x, acc -> x * acc end)
+      |> then(fn v -> v + acc end)
+
+    "+" ->
+      Enum.map(nums, &String.to_integer/1) |> Enum.sum() |> then(fn v -> v + acc end)
+  end
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+example
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split(&1, "", trim: true))
+|> Enum.zip_with(&Function.identity/1)
+|> Enum.chunk_by(fn x -> Enum.all?(x, fn v -> " " == v end) end)
+|> Enum.filter(fn e -> length(e) > 1 end)
+|> Enum.reduce(0, fn list, acc ->
+  [first_num | _] = list
+  [op | _] = Enum.reverse(first_num)
+
+  val =
+    case op do
+      "*" ->
+        Enum.reduce(list, 1, fn number, acc ->
+          digits =
+            Enum.filter(number, fn n ->
+              case Integer.parse(n) do
+                :error -> false
+                _ -> true
+              end
+            end)
+
+          Enum.join(digits) |> String.to_integer() |> Kernel.*(acc)
+        end)
+
+      "+" ->
+        Enum.reduce(list, 0, fn number, acc ->
+          digits =
+            Enum.filter(number, fn n ->
+              case Integer.parse(n) do
+                :error -> false
+                _ -> true
+              end
+            end)
+
+          Enum.join(digits) |> String.to_integer() |> Kernel.+(acc)
+        end)
+    end
+
+  val + acc
+end)
+```
