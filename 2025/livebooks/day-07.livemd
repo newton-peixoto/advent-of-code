@@ -1,0 +1,232 @@
+# Advent of code day 07
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+grid =example
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+rows = tuple_size(grid) - 1
+cols = tuple_size(elem(grid, 0)) - 1
+
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(grid, l), c)}
+  end
+
+{start_position, _ } = Enum.find(grid, fn {_k, v} -> v == "S" end)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{simulated_grid, splits} =
+  Stream.iterate(0, &(&1 + 1))
+  |> Enum.reduce_while({[start_position], %{}, 0, grid}, fn _, {queue, visited, splits, grid} ->
+    case queue do
+      [] ->
+        {:halt, {grid, splits}}
+
+      [current | q] ->
+        cond do
+          queue == [] ->
+            {:halt, {grid, splits}}
+
+          {r, c} = current ->
+            case Map.get(grid, {r + 1, c}) do
+              nil ->
+                {:cont, {q, visited, splits, grid}}
+
+              "|" ->
+                {:cont, {q, visited, splits, grid}}
+
+              "." ->
+                next = {r + 1, c}
+
+                grid =
+                  if !Map.has_key?(visited, next),
+                    do: Map.put(grid, next, "|") |> Map.put(current, "|"),
+                    else: grid |> Map.put(current, "|")
+
+                q =
+                  if !Map.has_key?(visited, next), do: [next | q], else: q
+
+                visited =
+                  visited
+                  |> Map.put(current, true)
+                  |> Map.put(next, true)
+
+                {:cont, {q, visited, splits, grid}}
+
+              "^" ->
+                left = {r + 1, c - 1}
+                right = {r + 1, c + 1}
+
+                splits = splits + 1
+
+                grid =
+                  if Map.get(grid, left) == "." and !Map.has_key?(visited, left),
+                    do: Map.put(grid, left, "|"),
+                    else: grid
+
+                grid =
+                  if Map.get(grid, right) == "." and !Map.has_key?(visited, right),
+                    do: Map.put(grid, right, "|"),
+                    else: grid
+
+                q =
+                  if !Map.has_key?(visited, right), do: [right | q], else: q
+
+                q =
+                  if !Map.has_key?(visited, left), do: [left | q], else: q
+
+                visited =
+                  visited
+                  |> Map.put(current, true)
+                  |> Map.put(left, true)
+                |> Map.put(right, true)
+                
+
+                {:cont, {q, visited, splits, grid}}
+            end
+
+          true ->
+            {:halt, {q, visited, splits, grid}}
+        end
+    end
+  end)
+
+splits
+```
+
+```elixir
+defmodule GridPrinter do
+  def print_grid(map) do
+    rows = for {row, _col} <- Map.keys(map), do: row
+    cols = for {_row, col} <- Map.keys(map), do: col
+
+    min_row = Enum.min(rows)
+    max_row = Enum.max(rows)
+    min_col = Enum.min(cols)
+    max_col = Enum.max(cols)
+
+    for row <- min_row..max_row do
+      line =
+        for col <- min_col..max_col do
+          Map.get(map, {row, col}, ".")
+        end
+        |> Enum.join(" ")
+
+      IO.puts(line)
+    end
+  end
+end
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+# running the similation once to get the visited nodes and generating a adj graph
+bg =
+  simulated_grid
+  |> Enum.filter(fn {k, v} ->
+    case {k, v} do
+      {{^cols, _}, "|"} -> true
+      {_, "|"} -> true
+      _ -> false
+    end
+  end)
+
+coords = Enum.map(bg, fn {coord, _} -> coord end)
+coords_set = MapSet.new(coords) |> MapSet.put(start_position)
+
+adj_list =
+  Enum.reduce(coords, %{}, fn {r, c}, acc ->
+    down = {r + 1, c}
+    leftd = {r + 1, c - 1}
+    rightd = {r + 1, c + 1}
+
+    candidates =
+      case Map.get(simulated_grid, down) do
+        "^" -> [leftd, rightd]
+        "|" -> [down]
+        _ -> []
+      end
+
+    neighbors =
+      Enum.filter(candidates, fn p ->
+        MapSet.member?(coords_set, p)
+      end)
+
+    Map.put(acc, {r, c}, neighbors)
+  end)
+```
+
+```elixir
+defmodule DFS do
+  def count_paths(graph, start) do
+    {count, _memo} = dfs(start, graph, %{}, MapSet.new())
+    count
+  end
+
+  defp dfs(node, graph, memo, visited) do
+    case memo[node] do
+      nil -> :continue
+      cached -> {cached, memo}
+    end
+    |> case do
+      {cached, memo} ->
+        {cached, memo}
+
+      :continue ->
+        if MapSet.member?(visited, node) do
+          {0, memo}
+        else
+          neighbors = Map.get(graph, node, [])
+
+          cond do
+            neighbors == [] ->
+              {1, Map.put(memo, node, 1)}
+
+            true ->
+              visited = MapSet.put(visited, node)
+
+              {total, memo} =
+                Enum.reduce(neighbors, {0, memo}, fn n, {acc, memo} ->
+                  {val, memo} = dfs(n, graph, memo, visited)
+                  {acc + val, memo}
+                end)
+
+              {total, Map.put(memo, node, total)}
+          end
+        end
+    end
+  end
+end
+
+DFS.count_paths(adj_list, start_position)
+```
