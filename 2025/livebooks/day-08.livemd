@@ -1,0 +1,108 @@
+# Advent of code day 08
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+calc_distance = fn {x1, y1, z1}, {x2, y2, z2} ->
+  (x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2
+end
+
+coords =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn coords ->
+    String.split(coords, ",", trim: true) |> Enum.map(&String.to_integer/1) |> List.to_tuple()
+  end)
+
+distances =
+  for {a, i} <- Enum.with_index(coords),
+      {b, j} <- Enum.with_index(coords),
+      i < j do
+    {calc_distance.(a, b), {a, b}}
+  end
+  |> Enum.sort()
+
+circuit_containing = fn circuits, coord ->
+  case Enum.find(circuits, fn {_, ms} ->
+         MapSet.member?(ms, coord)
+       end) do
+    nil -> nil
+    {id, _ } -> id
+  end
+end
+
+add_to_circuits = fn circuits, coord1, coord2 ->
+  c1 = circuit_containing.(circuits, coord1)
+  c2 = circuit_containing.(circuits, coord2)
+
+  case {c1, c2} do
+    {c, c} ->
+      circuits
+
+    {c1, c2} ->
+      circuits
+      |> Map.delete(c1)
+      |> Map.update!(c2, fn ms2 -> MapSet.union(Map.get(circuits, c1), ms2) end)
+  end
+end
+
+# here we generate a circuit with itself 
+circuits =
+  Enum.reduce(coords, %{}, fn coord, acc ->
+    acc
+    |> Map.put(make_ref(), MapSet.new([coord]))
+  end)
+
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+# loop through 1000 connection the coords 
+Enum.reduce(1..1000, {distances, circuits}, fn _,
+                                               {[{_, {coord1, coord2}} | distances], circuits} ->
+  {distances, add_to_circuits.(circuits, coord1, coord2)}
+end)
+|> elem(1)
+|> Enum.map(fn {_id, ms} -> ms end)
+|> Enum.map(fn e -> MapSet.size(e) end)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.product()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.reduce_while(distances, circuits, fn {_, {coord1, coord2}}, circuits ->
+  circuits = add_to_circuits.(circuits, coord1, coord2)
+
+  if Enum.count(circuits) == 1 do
+    {:halt, {coord1, coord2}}
+  else
+    {:cont, circuits}
+  end
+end)
+|> then(fn {{d, _, _}, {d2, _, _}} -> d * d2 end)
+```
