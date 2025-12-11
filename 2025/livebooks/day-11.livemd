@@ -1,0 +1,93 @@
+# Advent of code day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+graph = example
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.reduce(%{}, fn line, graph ->
+  [key | neigh] = String.split(line, " ", trim: true)
+  key = String.trim_trailing(key, ":")
+
+  Enum.reduce(neigh, graph, fn n, acc ->
+    neigh = Map.get(acc, key, MapSet.new())
+    Map.put(acc, key, MapSet.put(neigh, n))
+  end)
+end)
+```
+
+```elixir
+defmodule DFS do
+  def count_paths(graph, start) do
+    {count, _memo} = dfs(start, graph, %{}, MapSet.new())
+    count
+  end
+
+  defp dfs(node, graph, memo, visited) do
+    case memo[node] do
+      nil -> :continue
+      cached -> {cached, memo}
+    end
+    |> case do
+      {cached, memo} ->
+        {cached, memo}
+
+      :continue ->
+        if MapSet.member?(visited, node) do
+          {0, memo}
+        else
+          neighbors = Map.get(graph, node, [])
+
+          cond do
+            neighbors == [] ->
+              {1, Map.put(memo, node, 1)}
+
+            true ->
+              visited = MapSet.put(visited, node)
+
+              {total, memo} =
+                Enum.reduce(neighbors, {0, memo}, fn n, {acc, memo} ->
+                  {val, memo} = dfs(n, graph, memo, visited)
+                  {acc + val, memo}
+                end)
+
+              {total, Map.put(memo, node, total)}
+          end
+        end
+    end
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+DFS.count_paths(graph, "you")
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
