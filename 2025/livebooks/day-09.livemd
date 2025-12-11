@@ -1,0 +1,54 @@
+# Advent of code day 09
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+coords =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n", ","], trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(2)
+
+calc_distance = fn [x1, y1], [x2, y2] ->
+  abs(x1 - x2 + 1) * abs(y1 - y2 + 1)
+end
+
+distances =
+  for {a, i} <- Enum.with_index(coords),
+      {b, j} <- Enum.with_index(coords),
+      i < j do
+    {calc_distance.(a, b), {a, b}}
+  end
+  |> Enum.sort(:desc)
+  |> Enum.take(1)
+  |> then(fn [{d, _} | _] -> d end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
