@@ -1,0 +1,101 @@
+# Advent of code day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Combinations do
+  def combinations(_, 0), do: [[]]
+  def combinations([], _), do: []
+  
+  def combinations([h | t], r) do
+    (for combo <- combinations(t, r - 1), do: [h | combo]) ++ combinations(t, r)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lines =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn line ->
+    [target | rest] = String.split(line, " ", trim: true)
+    [j | buttons] = Enum.reverse(rest)
+    
+    buttons =
+      Enum.reverse(buttons)
+      |> Enum.map(fn button ->
+        button
+        |> String.trim_leading("(")
+        |> String.trim_trailing(")")
+        |> String.split(",")
+        |> Enum.map(&String.to_integer/1)
+        |> Enum.into(MapSet.new())
+      end)
+    
+    target =
+      target
+      |> String.trim_leading("[")
+      |> String.trim_trailing("]")
+      |> String.split("", trim: true)
+      |> Enum.with_index()
+      |> Enum.filter(fn {v, _i} -> v == "#" end)
+      |> Enum.map(fn {_, i} -> i end)
+      |> Enum.into(MapSet.new())
+    
+    {target, buttons, j}
+  end)
+
+total =
+  Enum.reduce(lines, 0, fn {target, buttons, _}, acc ->
+    result = Enum.reduce_while(1..length(buttons), 0, fn count, _inner_acc ->
+      found = Enum.reduce_while(Combinations.combinations(buttons, count), nil, fn attempt, _light ->
+        lights = Enum.reduce(attempt, MapSet.new(), fn button, lights ->
+          MapSet.symmetric_difference(lights, button)
+        end)
+        
+        if MapSet.equal?(lights, target) do
+          {:halt, count}
+        else
+          {:cont, nil}
+        end
+      end)
+      
+      if found != nil do
+        {:halt, found}
+      else
+        {:cont, 0}
+      end
+    end)
+    
+    acc + result
+  end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
