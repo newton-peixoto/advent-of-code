@@ -1,0 +1,56 @@
+# Advent of code day 12
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+# probably it does not make any sense but ir gave me the star.
+input =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n\n"])
+
+[amounts | patterns] = Enum.reverse(input)
+
+patterns =
+  Enum.map(patterns, fn g ->
+    idx = String.at(g, 0)
+    size = String.count(g, "#")
+
+    {String.to_integer(idx), size}
+  end)
+  |> Enum.into(%{})
+
+amounts
+|> String.split("\n", trim: true)
+|> Enum.reduce(0, fn line, acc ->
+  [x, y | nums] = String.split(line, [": ", "x", " "]) |> Enum.map(&String.to_integer/1)
+
+  total =
+    Enum.with_index(nums)
+    |> Enum.reduce(0, fn {v, i}, acc ->
+      acc + patterns[i] * v
+    end)
+
+  if total <= x * y do
+    acc + 1
+  else
+    acc
+  end
+end)
+```
