@@ -30,6 +30,8 @@ coords =
   |> Enum.map(&String.to_integer/1)
   |> Enum.chunk_every(2)
 
+
+
 calc_distance = fn [x1, y1], [x2, y2] ->
   abs(x1 - x2 + 1) * abs(y1 - y2 + 1)
 end
@@ -45,10 +47,168 @@ distances =
   |> then(fn [{d, _} | _] -> d end)
 ```
 
+```elixir
+defmodule GridPrinter do
+  def print_grid(map) do
+    rows = for {row, _col} <- Map.keys(map), do: row
+    cols = for {_row, col} <- Map.keys(map), do: col
+
+    max_row = Enum.max(rows)
+    max_col = Enum.max(cols)
+
+    for row <- 0..max_row do
+      line =
+        for col <- 0..max_col do
+          Map.get(map, {row, col}, ".")
+          
+        end
+        |> Enum.join(" ")
+
+      IO.puts(line)
+    end
+  end
+end
+```
+
 ## Part 02
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+# Build points map
+points =
+  coords
+  |> Enum.map(fn [x, y] -> {{x, y}, 1} end)
+  |> Map.new()
+
+# Build index maps
+xs_idx =
+  coords
+  |> Enum.map(&hd/1)
+  |> Enum.uniq()
+  |> Enum.sort()
+  |> Enum.with_index()
+  |> Map.new()
+
+ys_idx =
+  coords
+  |> Enum.map(&Enum.at(&1, 1))
+  |> Enum.uniq()
+  |> Enum.sort()
+  |> Enum.with_index()
+  |> Map.new()
+
+# Grid
+grid =
+  for x <- 0..(map_size(xs_idx) * 2 - 2),
+      y <- 0..(map_size(ys_idx) * 2 - 2),
+      into: %{} do
+    {{x, y}, 0}
+  end
+
+# Shift points (circular)
+[head | rest] = coords
+shifted_points = rest ++ [head]
+
+# Draw walls
+grid =
+  coords
+  |> Enum.zip(shifted_points)
+  |> Enum.reduce(grid, fn {[x1, y1], [x2, y2]}, grid ->
+    {cx1, cx2} = Enum.min_max([xs_idx[x1] * 2, xs_idx[x2] * 2])
+    {cy1, cy2} = Enum.min_max([ys_idx[y1] * 2, ys_idx[y2] * 2])
+
+    for cx <- cx1..cx2,
+        cy <- cy1..cy2,
+        reduce: grid do
+      acc -> Map.put(acc, {cx, cy}, 1)
+    end
+  end)
+
+# Flood fill
+outside = MapSet.new([{-1, -1}])
+queue = [{-1, -1}]
+
+max_x = map_size(xs_idx) * 2 - 2
+max_y = map_size(ys_idx) * 2 - 2
+
+outside =
+  Stream.iterate(0, &(&1 + 1))
+  |> Enum.reduce_while({queue, grid, outside}, fn _, {queue, grid, outside} ->
+    case queue do
+      [] ->
+        {:halt, outside}
+
+      [{tx, ty} | rest] ->
+        neighbors = [{tx - 1, ty}, {tx + 1, ty}, {tx, ty - 1}, {tx, ty + 1}]
+
+        {queue, outside} =
+          Enum.reduce(neighbors, {rest, outside}, fn {nx, ny}, {queue, outside} ->
+            out_of_bound = nx < -1 or ny < -1 or nx > max_x or ny > max_y
+            is_wall = Map.get(grid, {nx, ny}, 0) == 1
+            visited = MapSet.member?(outside, {nx, ny})
+
+            if not out_of_bound and not is_wall and not visited do
+              {[{nx, ny} | queue], MapSet.put(outside, {nx, ny})}
+            else
+              {queue, outside}
+            end
+          end)
+
+        {:cont, {queue, grid, outside}}
+    end
+  end)
+
+# since we now each one is outside we can build know the insiders 
+filled =
+  Enum.reduce(grid, grid, fn {k, _v}, g ->
+    if not MapSet.member?(outside, k) do
+      Map.put(g, k, 1)
+    else
+      g
+    end
+  end)
+
+# here we are computing every sum of ones to a giving point
+psa =
+  Enum.sort_by(filled, fn {{x, y}, _} -> {x, y} end)
+  |> Enum.reduce(%{}, fn {{x, y} = k, v}, psa ->
+    left = if x > 0, do: Map.get(psa, {x - 1, y}, 0), else: 0
+    top = if y > 0, do: Map.get(psa, {x, y - 1}, 0), else: 0
+    topleft = if x > 0 and y > 0, do: Map.get(psa, {x - 1, y - 1}, 0), else: 0
+
+    value = left + top - topleft + v
+
+    Map.put(psa, k, value)
+  end)
+
+valid? = fn {x1, y1}, {x2, y2} ->
+  {cx1, cx2} = Enum.min_max([xs_idx[x1] * 2, xs_idx[x2] * 2])
+  {cy1, cy2} = Enum.min_max([ys_idx[y1] * 2, ys_idx[y2] * 2])
+
+  left = if cx1 > 0, do: Map.get(psa, {cx1, cy2}, 0), else: 0
+  top = if cy1 > 0, do: Map.get(psa, {cx2, cy1 - 1}, 0), else: 0
+  topleft = if cx1 > 0 and cy1 > 0, do: Map.get(psa, {cx1 - 1, cy1 - 1}, 0), else: 0
+  count = psa[{cx2, cy2}] - left - top + topleft
+  count == (cx2 - cx1 + 1) * (cy2 - cy1 + 1)
+end
+
+
+points_list = Map.keys(points)
+
+result =
+  for {{x1, y1}, i} <- Enum.with_index(points_list),
+      {x2, y2} <- Enum.take(points_list, i),
+      valid?.({x1, y1}, {x2, y2}),
+      reduce: 0 do
+    acc ->
+      max(acc, (abs(x1 - x2) + 1) * (abs(y1 - y2) + 1))
+  end
+
+
+
+
+
+
 
 ```
