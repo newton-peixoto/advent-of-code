@@ -75,6 +75,8 @@ end
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+# learnt a lot from https://www.youtube.com/watch?v=toDrFDh7VNs 
+
 # Build points map
 points =
   coords
@@ -144,7 +146,7 @@ outside =
 
         {queue, outside} =
           Enum.reduce(neighbors, {rest, outside}, fn {nx, ny}, {queue, outside} ->
-            out_of_bound = nx < -1 or ny < -1 or nx > (max_x + 1) or ny > (max_y + 1)
+            out_of_bound = nx < -1 or ny < -1 or nx > max_x + 1 or ny > max_y + 1
             is_wall = Map.get(grid, {nx, ny}, 0) == 1
             visited = MapSet.member?(outside, {nx, ny})
 
@@ -208,6 +210,5 @@ result =
       max(acc, (abs(x1 - x2) + 1) * (abs(y1 - y2) + 1))
   end
 
-# 2995390800
 # 1530527040
 ```
