@@ -144,7 +144,7 @@ outside =
 
         {queue, outside} =
           Enum.reduce(neighbors, {rest, outside}, fn {nx, ny}, {queue, outside} ->
-            out_of_bound = nx < -1 or ny < -1 or nx > max_x or ny > max_y
+            out_of_bound = nx < -1 or ny < -1 or nx > (max_x + 1) or ny > (max_y + 1)
             is_wall = Map.get(grid, {nx, ny}, 0) == 1
             visited = MapSet.member?(outside, {nx, ny})
 
@@ -186,29 +186,28 @@ valid? = fn {x1, y1}, {x2, y2} ->
   {cx1, cx2} = Enum.min_max([xs_idx[x1] * 2, xs_idx[x2] * 2])
   {cy1, cy2} = Enum.min_max([ys_idx[y1] * 2, ys_idx[y2] * 2])
 
-  left = if cx1 > 0, do: Map.get(psa, {cx1, cy2}, 0), else: 0
-  top = if cy1 > 0, do: Map.get(psa, {cx2, cy1 - 1}, 0), else: 0
-  topleft = if cx1 > 0 and cy1 > 0, do: Map.get(psa, {cx1 - 1, cy1 - 1}, 0), else: 0
-  count = psa[{cx2, cy2}] - left - top + topleft
+  left = Map.get(psa, {cx1 - 1, cy2}, 0)
+
+  top = Map.get(psa, {cx2, cy1 - 1}, 0)
+
+  topleft =
+    Map.get(psa, {cx1 - 1, cy1 - 1}, 0)
+
+  value = Map.get(psa, {cx2, cy2}, 0)
+
+  count = value - left - top + topleft
   count == (cx2 - cx1 + 1) * (cy2 - cy1 + 1)
 end
 
-
-points_list = Map.keys(points)
-
 result =
-  for {{x1, y1}, i} <- Enum.with_index(points_list),
-      {x2, y2} <- Enum.take(points_list, i),
+  for {[x1, y1], i} <- Enum.with_index(coords),
+      [x2, y2] <- Enum.take(coords, i),
       valid?.({x1, y1}, {x2, y2}),
       reduce: 0 do
     acc ->
       max(acc, (abs(x1 - x2) + 1) * (abs(y1 - y2) + 1))
   end
 
-
-
-
-
-
-
+# 2995390800
+# 1530527040
 ```
