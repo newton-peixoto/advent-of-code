@@ -2,7 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.5.0"}
+  {:kino, "~> 0.5.0"},
+  {:dantzig, "~> 0.1.0"}
 ])
 ```
 
@@ -97,5 +98,70 @@ total =
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+defmodule A do
+  require Dantzig.Problem, as: Problem
+  alias Dantzig.Solution
+  require Dantzig.Constraint, as: Constraint
+  use Dantzig.Polynomial.Operators
 
+  def a do
+    total_width = 300.0
+    problem = Problem.new(direction: :maximize)
+
+    fits_inside = fn problem, inside, outside ->
+      Problem.add_constraint(problem, Constraint.new(inside <= outside))
+    end
+
+    long_calculation_by_external_program = fn _boxes ->
+      [15, 40, 38.0]
+    end
+
+    problem =
+      Problem.with_implicit_problem problem do
+        v!(left_margin, min: 0.0)
+        v!(center, min: 0.0)
+        v!(right_margin, min: 0.0)
+
+        v!(box1_width, min: 0.0)
+        v!(box2_width, min: 0.0)
+        v!(box3_width, min: 0.0)
+
+        v!(canvas1_width, min: 0.0)
+        v!(canvas2_width, min: 0.0)
+        v!(canvas3_width, min: 0.0)
+
+        constraint!(canvas1_width + canvas2_width + canvas3_width == center)
+        # REMOVE these ratio constraints - they over-constrain the problem
+        # constraint!(canvas1_width == 2 * canvas2_width)
+        # constraint!(canvas1_width == 2 * canvas3_width)
+
+        problem = fits_inside.(problem, box1_width, canvas1_width)
+        problem = fits_inside.(problem, box2_width, canvas2_width)
+        problem = fits_inside.(problem, box3_width, canvas3_width)
+
+        [box1_w, box2_w, box3_w] =
+          long_calculation_by_external_program.([
+            box1_width,
+            box2_width,
+            box3_width
+          ])
+
+        constraint!(box1_width == box1_w)
+        constraint!(box2_width == box2_w)
+        constraint!(box3_width == box3_w)
+
+        constraint!(left_margin + center + right_margin == total_width)
+
+        increment_objective!(center - left_margin - right_margin)
+
+        problem
+      end
+
+    solution = Dantzig.solve(problem)
+    # Return the solution
+    solution
+  end
+end
+
+A.a()
 ```
