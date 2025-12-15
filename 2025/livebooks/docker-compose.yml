@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  livebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8090"
+      - "8091:8091"
+    environment:
+      - LIVEBOOK_PORT=8090
+      - LIVEBOOK_PASSWORD=securesecret
+      - LIVEBOOK_IFRAME_PORT=8091
+    volumes:
+      - .:/data
+    user: "${UID:-1000}:${GID:-1000}"
