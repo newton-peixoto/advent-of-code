@@ -1,35 +1,24 @@
 # Advent of code day 10
 
 ```elixir
-Mix.install([
-  {:kino, "~> 0.5.0"},
-  {:dantzig, "~> 0.1.0"}
-])
-
+Mix.install(
+  [
+    {:kino, "~> 0.5.0"},
+    {:dantzig, github: "hauleth/dantzig", ref: "use-proper-binary"}
+  ],
+  config: [
+    dantzig: [
+      highs_binary_path:  "/usr/local/bin/highs" # this branch has fixes for integers. Original one
+      # fails to round it correct and since we cannot have 0.5 buttons we must use it. 
+    ]
+  ]
+)
 ```
 
 ## Setup input
 
 ```elixir
 example = Kino.Input.textarea("Please paste your input example:")
-```
-
-<!-- livebook:{"reevaluate_automatically":true} -->
-
-```elixir
-
-# im running a modified dockerfile that has the HiGHS solver so i cant use dantzig 
-dep_path = Mix.install_project_dir()
-solver_dir = Path.join([dep_path, "deps", "dantzig", "priv", "solver", "x86_64-linux-gnu"])
-
-if File.exists?("/usr/local/bin/highs") and File.dir?(solver_dir) do
-  highs_dest = Path.join(solver_dir, "highs")
-  File.cp!("/usr/local/bin/highs", highs_dest)
-  File.chmod!(highs_dest, 0o755)
-  IO.puts("✓ Replaced HiGHS binary in: #{solver_dir}")
-else
-  IO.puts("⚠ HiGHS binary or dantzig solver directory not found")
-end
 ```
 
 ```elixir
@@ -43,10 +32,6 @@ defmodule Combinations do
 end
 ```
 
-## Part 01
-
-<!-- livebook:{"reevaluate_automatically":true} -->
-
 ```elixir
 lines =
   example
@@ -55,7 +40,13 @@ lines =
   |> Enum.map(fn line ->
     [target | rest] = String.split(line, " ", trim: true)
     [j | buttons] = Enum.reverse(rest)
-    
+
+    j =
+      String.trim(j, "{")
+      |> String.trim("}")
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.to_integer/1)
+
     buttons =
       Enum.reverse(buttons)
       |> Enum.map(fn button ->
@@ -66,7 +57,7 @@ lines =
         |> Enum.map(&String.to_integer/1)
         |> Enum.into(MapSet.new())
       end)
-    
+
     target =
       target
       |> String.trim_leading("[")
@@ -76,10 +67,16 @@ lines =
       |> Enum.filter(fn {v, _i} -> v == "#" end)
       |> Enum.map(fn {_, i} -> i end)
       |> Enum.into(MapSet.new())
-    
+
     {target, buttons, j}
   end)
+```
 
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
 total =
   Enum.reduce(lines, 0, fn {target, buttons, _}, acc ->
     result = Enum.reduce_while(1..length(buttons), 0, fn count, _inner_acc ->
@@ -111,5 +108,70 @@ total =
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+defmodule JoltageOptimizer do
+  alias Dantzig.Polynomial
+  alias Dantzig.Constraint
+  alias Dantzig.Problem
+  alias Dantzig.Solution
 
+  def solve_machine(buttons, targets) do
+    p = Problem.new(direction: :minimize)
+
+    # Create one variable per button
+    {p, vars} =
+      Enum.reduce(0..(length(buttons) - 1), {p, []}, fn i, {prob, vars_acc} ->
+        {prob, var} = Problem.new_variable(prob, "v#{i}", min: 0, type: :integer)
+        {prob, vars_acc ++ [var]}
+      end)
+
+    # For each counter (joltage requirement), add constraint
+    p =
+      targets
+      |> Enum.with_index()
+      |> Enum.reduce(p, fn {target, counter_idx}, prob ->
+        # Find which buttons affect this counter
+        affecting_button_indices =
+          buttons
+          |> Enum.with_index()
+          |> Enum.filter(fn {button, _} -> counter_idx in button end)
+          |> Enum.map(fn {_, button_idx} -> button_idx end)
+
+        case affecting_button_indices do
+          [] ->
+            prob
+
+          indices ->
+            # Sum the variables for buttons that affect this counter
+            button_vars = Enum.map(indices, fn idx -> Enum.at(vars, idx) end)
+            poly = Polynomial.sum(button_vars)
+            Problem.add_constraint(prob, Constraint.new(poly, :==, target))
+        end
+      end)
+
+    # Minimize sum of all button presses
+    p = Problem.increment_objective(p, Polynomial.sum(vars))
+
+    # Solve
+    {:ok, s} = Dantzig.HiGHS.solve(p)
+
+    # Return total button presses
+    Enum.sum_by(vars, &Solution.evaluate(s, &1)) |> round()
+  end
+end
+
+lines =
+  Enum.map(lines, fn {_, buttons, joltages} ->
+    buttons = buttons |> Enum.map(fn b -> MapSet.to_list(b) end)
+
+    {buttons, joltages}
+  end)
+
+total =
+  lines
+  |> Enum.reduce(0, fn {buttons, targets}, acc ->
+    result = JoltageOptimizer.solve_machine(buttons, targets)
+    acc + result
+  end)
+
+total
 ```
