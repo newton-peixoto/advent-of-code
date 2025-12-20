@@ -7,6 +7,8 @@ Mix.install(
     {:dantzig, github: "hauleth/dantzig", ref: "use-proper-binary"}
   ],
   config: [
+    # we can always use the original branch if we apply this patch https://github.com/tmbb/dantzig/pull/4
+    # might be needed to use the previous hack in my commits to override the path.
     dantzig: [
       highs_binary_path:  "/usr/local/bin/highs" # this branch has fixes for integers. Original one
       # fails to round it correct and since we cannot have 0.5 buttons we must use it. 
