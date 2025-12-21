@@ -1,0 +1,180 @@
+# Advent of code day 03
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+parsed = example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+rows = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+|> Enum.sort
+|> Enum.into(%{})
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+digit? = fn
+  nil -> false
+  v -> String.match?(v, ~r/^\d$/)
+end
+
+number_starts =
+  Enum.reduce(grid, MapSet.new(), fn {{r, c}, v}, acc ->
+    if digit?.(v) or v == "." do
+      acc
+    else
+      neighbors = [
+        {r, c - 1},
+        {r, c + 1},
+        {r - 1, c},
+        {r + 1, c},
+        {r - 1, c - 1},
+        {r - 1, c + 1},
+        {r + 1, c - 1},
+        {r + 1, c + 1}
+      ]
+
+      Enum.reduce(neighbors, acc, fn {nr, nc}, acc ->
+        d = Map.get(grid, {nr, nc})
+
+        if digit?.(d) do
+          # walk left to find start of number
+          start_col =
+            Stream.iterate(nc - 1, &(&1 - 1))
+            |> Enum.reduce_while(nc, fn cc, _acc ->
+              if digit?.(Map.get(grid, {nr, cc})) do
+                {:cont, cc}
+              else
+                {:halt, cc + 1}
+              end
+            end)
+
+          MapSet.put(acc, {nr, start_col})
+        else
+          acc
+        end
+      end)
+    end
+  end)
+
+# Extract numbers from start positions
+numbers =
+  Enum.map(number_starts, fn {row, start_col} ->
+    # Walk right and concatenate digits
+    number_string =
+      Stream.iterate(start_col, &(&1 + 1))
+      |> Enum.reduce_while("", fn col, acc ->
+        d = Map.get(grid, {row, col})
+
+        if digit?.(d) do
+          {:cont, acc <> d}
+        else
+          {:halt, acc}
+        end
+      end)
+
+    String.to_integer(number_string)
+  end)
+  |> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+symbol_to_numbers =
+  Enum.reduce(grid, %{}, fn {{r, c}, v}, acc ->
+    if  v != "*" do
+      acc
+    else
+      neighbors = [
+        {r, c - 1},
+        {r, c + 1},
+        {r - 1, c},
+        {r + 1, c},
+        {r - 1, c - 1},
+        {r - 1, c + 1},
+        {r + 1, c - 1},
+        {r + 1, c + 1}
+      ]
+      
+      number_starts =
+        Enum.reduce(neighbors, MapSet.new(), fn {nr, nc}, set ->
+          d = Map.get(grid, {nr, nc})
+          
+          if digit?.(d) do
+            # walk left to find start of number
+            start_col =
+              Stream.iterate(nc - 1, &(&1 - 1))
+              |> Enum.reduce_while(nc, fn cc, _acc ->
+                if digit?.(Map.get(grid, {nr, cc})) do
+                  {:cont, cc}
+                else
+                  {:halt, cc + 1}
+                end
+              end)
+            
+            MapSet.put(set, {nr, start_col})
+          else
+            set
+          end
+        end)
+      
+      Map.put(acc, {r, c}, number_starts)
+    end
+  end)
+
+# Filter symbols with exactly 2 adjacent numbers and multiply them
+result =
+  symbol_to_numbers
+  |> Enum.filter(fn {_pos, number_starts} -> MapSet.size(number_starts) == 2 end)
+  |> Enum.map(fn {_pos, number_starts} ->
+    number_starts
+    |> Enum.map(fn {row, start_col} ->
+      # Walk right and concatenate digits
+      number_string =
+        Stream.iterate(start_col, &(&1 + 1))
+        |> Enum.reduce_while("", fn col, acc ->
+          d = Map.get(grid, {row, col})
+          if digit?.(d) do
+            {:cont, acc <> d}
+          else
+            {:halt, acc}
+          end
+        end)
+      
+      String.to_integer(number_string)
+    end)
+    |> Enum.product()
+  end)
+  |> Enum.sum()
+```
