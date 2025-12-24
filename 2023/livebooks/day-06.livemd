@@ -1,0 +1,84 @@
+# Advent of code day 06
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+[time, distance] =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n", "Distance:"], trim: true)
+
+times =
+  time
+  |> String.split(["Time:", " "], trim: true)
+  |> Enum.map(&String.to_integer/1)
+
+distances = distance |> String.split(" ", trim: true) |> Enum.map(&String.to_integer/1)
+
+Enum.zip(times, distances)
+|> Enum.reduce(1, fn {t, d}, acc ->
+  margin =
+    for hold <- 0..t, hold * (t - hold) > d do
+      1
+    end
+    |> Enum.sum()
+
+  margin * acc
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+[time, distance] =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n", "Distance:"], trim: true)
+
+times =
+  time |> String.split(["Time:", " "], trim: true) |> Enum.join("") |> String.to_integer()
+
+distances =
+  distance |> String.split(" ", trim: true) |> Enum.join("") |> String.to_integer()
+
+# we probably could solve it in O(1) using math
+# also, putting it inside a module so it compiles and runs faster.
+defmodule T do
+  def f(times, distances) do
+    Enum.zip([times], [distances])
+    |> Enum.reduce(1, fn {t, d}, acc ->
+      margin =
+        for hold <- 0..t, hold * (t - hold) > d do
+          1
+        end
+        |> Enum.sum()
+
+      margin * acc
+    end)
+  end
+end
+
+T.f(times, distances)
+```

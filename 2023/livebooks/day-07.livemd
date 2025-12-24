@@ -1,0 +1,118 @@
+# Advent of code day 07
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+letter_map = %{"T" => "A", "J" => "B", "Q" => "C", "K" => "D", "A" => "E"}
+
+classify = fn hand ->
+  counts = String.split(hand, "", trim: true) |> Enum.frequencies() |> Map.values()
+  cond do
+    5 in counts -> 6
+    4 in counts -> 5
+    3 in counts and 2 in counts -> 4
+    3 in counts -> 3
+    Enum.count(counts, fn c -> c == 2 end) == 2 -> 2  
+    2 in counts -> 1 
+    true -> 0 
+  end
+end
+
+score = fn {hand, _bid} ->
+  alph =
+    String.split(hand, "", trim: true)
+    |> Enum.map(fn letter -> Map.get(letter_map, letter, letter) end)
+    |> Enum.join("")
+
+  {classify.(hand), alph}
+end
+
+example
+|> Kino.Input.read()
+|> String.split(["\n", " "], trim: true)
+|> Enum.chunk_every(2)
+|> Enum.map(fn [card, bid | _] ->
+  {card, String.to_integer(bid)}
+end)
+|> Enum.sort_by(fn hand_bid -> score.(hand_bid) end)
+|> Enum.reduce({0, 1}, fn {_, bid}, {total, i} ->
+  {total + (i * bid), i + 1}
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+letter_map = %{"T" => "A", "J" => ".", "Q" => "C", "K" => "D", "A" => "E"}
+
+classify = fn hand ->
+  counts = String.split(hand, "", trim: true) |> Enum.frequencies() |> Map.values()
+
+  cond do
+    5 in counts -> 6
+    4 in counts -> 5
+    3 in counts and 2 in counts -> 4
+    3 in counts -> 3
+    Enum.count(counts, fn c -> c == 2 end) == 2 -> 2
+    2 in counts -> 1
+    true -> 0
+  end
+end
+
+score = fn {hand, _bid} ->
+  alph =
+    String.split(hand, "", trim: true)
+    |> Enum.map(fn letter -> Map.get(letter_map, letter, letter) end)
+    |> Enum.join("")
+
+  case hand do
+    "JJJJJ" ->
+      {classify.(hand), alph}
+
+    _ ->
+      {k, _v} =
+        String.split(hand, "", trim: true)
+        |> Enum.frequencies()
+        |> Enum.filter(fn {k, _v} -> k != "J" end)
+        |> Enum.max_by(fn {_k, v} -> v end)
+
+      hand = if "J" in String.split(hand, ""), do: String.replace(hand, "J", k), else: hand
+
+      {classify.(hand), alph}
+  end
+end
+
+example
+|> Kino.Input.read()
+|> String.split(["\n", " "], trim: true)
+|> Enum.chunk_every(2)
+|> Enum.map(fn [card, bid | _] ->
+  {card, String.to_integer(bid)}
+end)
+|> Enum.sort_by(fn hand_bid -> score.(hand_bid) end)
+|> Enum.reduce({0, 1}, fn {_, bid}, {total, i} ->
+  {total + i * bid, i + 1}
+end)
+```
