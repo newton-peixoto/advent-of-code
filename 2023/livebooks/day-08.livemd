@@ -63,10 +63,7 @@ starts = Map.keys(nodes) |> Enum.filter(fn node -> String.ends_with?(node, "A") 
 
 # tried simulation the same way as part 01. It was too slow.
 defmodule Solver do
-  def gcd(a, 0), do: a
-  def gcd(a, b), do: gcd(b, rem(a, b))
-
-  def lcm(a, b), do: div(a * b, gcd(a, b))
+  def lcm(a, b), do: div(a * b, Integer.gcd(a,b))
 
   def find_cycle_length(start, dirs, nodes) do
     Stream.cycle(dirs)
