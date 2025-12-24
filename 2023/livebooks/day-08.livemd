@@ -1,0 +1,86 @@
+# Advent of code day 08
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+[dirs | nodes] =
+  example
+  |> Kino.Input.read()
+  |> String.split(["\n"], trim: true)
+
+original_dirs = String.split(dirs, "", trim: true)
+
+nodes =
+  Enum.reduce(nodes, Map.new(), fn node, acc ->
+    [key, _, children | _] = String.split(node, [" = ", "(", ")"])
+    [left, right | _] = String.split(children, ", ", trim: true)
+
+    acc
+    |> Map.put(key, [left, right])
+  end)
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+start = "AAA"
+
+Stream.iterate(0, &(&1 + 1))
+|> Enum.reduce_while({original_dirs, start, 0}, fn _move, {dirs, node, moves} ->
+  cond do
+    node == "ZZZ" -> {:halt, moves}
+    dirs == [] -> {:cont, {original_dirs, node, moves}}
+    hd(dirs) == "L" -> {:cont, {tl(dirs), Map.get(nodes, node) |> Enum.at(0), moves + 1}}
+    hd(dirs) == "R" -> {:cont, {tl(dirs), Map.get(nodes, node) |> Enum.at(1), moves + 1}}
+  end
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+starts = Map.keys(nodes) |> Enum.filter(fn node -> String.ends_with?(node, "A") end)
+
+# tried simulation the same way as part 01. It was too slow.
+defmodule Solver do
+  def gcd(a, 0), do: a
+  def gcd(a, b), do: gcd(b, rem(a, b))
+
+  def lcm(a, b), do: div(a * b, gcd(a, b))
+
+  def find_cycle_length(start, dirs, nodes) do
+    Stream.cycle(dirs)
+    |> Enum.reduce_while({start, 0}, fn dir, {node, steps} ->
+      cond do
+        String.ends_with?(node, "Z") -> {:halt, steps}
+        dir == "L" -> {:cont, { Map.get(nodes, node) |> Enum.at(0), steps + 1}}
+        dir == "R" -> {:cont, { Map.get(nodes, node) |> Enum.at(1), steps + 1}}
+      end
+    end)
+  end
+end
+
+starts
+|> Enum.map(&Solver.find_cycle_length(&1, original_dirs, nodes))
+|> Enum.reduce(&Solver.lcm/2)
+```
