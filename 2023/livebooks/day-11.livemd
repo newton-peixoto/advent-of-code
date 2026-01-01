@@ -1,0 +1,107 @@
+# Advent of code day 11
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Combinations do
+  def combinations(_, 0), do: [[]]
+  def combinations([], _), do: []
+  
+  def combinations([h | t], r) do
+    (for combo <- combinations(t, r - 1), do: [h | combo]) ++ combinations(t, r)
+  end
+end
+```
+
+```elixir
+lines =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+
+
+grid =
+  Enum.map(lines, fn line ->
+    line
+    |> String.split("", trim: true)
+    |> List.to_tuple()
+  end)
+  |> List.to_tuple()
+
+total_cols = tuple_size(elem(grid, 0)) - 1
+total_rows = (lines |> Enum.count()) - 1
+
+empty_rows=
+  grid
+  |> Tuple.to_list()
+  |> Enum.with_index()
+  |> Enum.map(fn {row, i} ->
+    if Tuple.to_list(row) |> Enum.all?(&Kernel.==(&1, ".")), do: i, else: nil
+  end)
+  |> Enum.reject(&Kernel.==(&1, nil))
+
+empty_cols =
+  grid
+  |> Tuple.to_list()
+  |> Enum.map(&Tuple.to_list/1)
+  |> Enum.zip_with(&Function.identity/1)
+  |> Enum.with_index()
+  |> Enum.map(fn {row, i} ->
+    if row |> Enum.all?(&Kernel.==(&1, ".")), do: i, else: nil
+  end)
+  |> Enum.reject(&Kernel.==(&1, nil))
+
+points =
+  for r <- 0..total_rows, c <- 0..total_cols, elem(grid, r) |> elem(c) == "#" do
+    {r, c}
+  end
+
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+combs = Combinations.combinations(points, 2)
+
+Enum.reduce(combs, 0, fn [{r1, c1}, {r2, c2}], total ->
+  rt =
+    for r <- min(r1, r2)..( max(r1, r2) -  1) do
+      if r in empty_rows, do: 2, else: 1
+    end
+    |> Enum.sum()
+
+  rc =
+    for c <- min(c1, c2)..( max(c1, c2) -  1) do
+      if c in empty_cols, do: 2, else: 1
+    end
+    |> Enum.sum()
+
+  rc + rt + total
+end)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
