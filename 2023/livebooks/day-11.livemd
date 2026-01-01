@@ -74,34 +74,26 @@ points =
 
 ```
 
-## Part 01
+## Part 01 & 02
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 combs = Combinations.combinations(points, 2)
+expansion_factor = 1000000
 
 Enum.reduce(combs, 0, fn [{r1, c1}, {r2, c2}], total ->
-  rt =
-    for r <- min(r1, r2)..( max(r1, r2) -  1) do
-      if r in empty_rows, do: 2, else: 1
-    end
-    |> Enum.sum()
 
-  rc =
-    for c <- min(c1, c2)..( max(c1, c2) -  1) do
-      if c in empty_cols, do: 2, else: 1
-    end
-    |> Enum.sum()
-
-  rc + rt + total
+  empty_rows_between = 
+    Enum.count(empty_rows, fn r -> r > min(r1, r2) and r < max(r1, r2) end)
+  
+  empty_cols_between = 
+    Enum.count(empty_cols, fn c -> c > min(c1, c2) and c < max(c1, c2) end)
+  
+  base_distance = abs(r1 - r2) + abs(c1 - c2)
+  
+  expansion = (empty_rows_between + empty_cols_between) * (expansion_factor - 1)
+  
+  base_distance + expansion + total
 end)
-```
-
-## Part 02
-
-<!-- livebook:{"reevaluate_automatically":true} -->
-
-```elixir
-
 ```
