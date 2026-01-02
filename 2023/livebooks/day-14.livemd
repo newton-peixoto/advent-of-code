@@ -1,0 +1,107 @@
+# Advent of code day 14
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+grid = example
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split(&1,"", trim: true))
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+grid
+|> Enum.zip_with(&Function.identity/1)
+|> Enum.map(fn col ->
+  col
+  |> Enum.join()
+  |> String.split("#")
+  |> Enum.map(fn group ->
+    group
+    |> String.graphemes()
+    |> Enum.sort(:desc)
+    |> Enum.join()
+  end)
+  |> Enum.join("#")
+end)
+|> Enum.map(&String.split(&1, "", trim: true))
+|> Enum.zip_with(&Function.identity/1)
+|> Enum.with_index(fn row, idx ->
+  rocks = Enum.count(row, &(&1 == "O"))
+  rocks * (length(grid) - idx)
+end)
+|> Enum.sum()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+cycle = fn grid ->
+  Enum.reduce(1..4, grid, fn _, grid ->
+    grid
+    |> Enum.zip_with(&Function.identity/1)
+    |> Enum.map(fn col ->
+      col
+      |> Enum.join()
+      |> String.split("#")
+      |> Enum.map(fn group ->
+        group
+        |> String.graphemes()
+        |> Enum.sort(:desc)
+        |> Enum.join()
+      end)
+      |> Enum.join("#")
+    end)
+    |> Enum.map(&(String.split(&1, "", trim: true) |> Enum.reverse()))
+  end)
+end
+
+seen = MapSet.new([grid])
+states = [grid]
+
+{iter, states, grid} =
+  Stream.iterate(1, &(&1 + 1))
+  |> Enum.reduce_while({seen, states, grid}, fn iter, {seen, states, grid} ->
+    grid = cycle.(grid)
+    if MapSet.member?(seen, grid) do
+      {:halt, {iter, states, grid}}
+    else
+      seen = MapSet.put(seen, grid)
+      states = states ++ [grid]
+      {:cont, {seen, states, grid}}
+    end
+  end)
+
+first = Enum.find_index(states, &Kernel.==(&1, grid))
+
+grid = Enum.at(states, rem(1_000_000_000 - first, iter - first) + first)
+
+grid
+|> Enum.with_index(fn row, idx ->
+  rocks = Enum.count(row, &(&1 == "O"))
+  rocks * (length(grid) - idx)
+end)
+|> Enum.sum()
+```
