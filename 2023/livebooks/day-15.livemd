@@ -47,5 +47,52 @@ example
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
+boxes =
+  for _b <- 0..265 do
+    []
+  end
+  |> List.to_tuple()
 
+focal_lengths = %{}
+
+{boxes, focal_lengths} =
+  example
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.reduce({boxes, focal_lengths}, fn instruction, {boxes, focal_lengths} ->
+    [label, op, len] =
+      String.split(instruction, ~r/(=|-)/, include_captures: true, trim: true)
+      |> case do
+        [label, op, len] -> [label, op, String.to_integer(len)]
+        [label, op] -> [label, op, 0]
+      end
+
+    index = Hash.hash(label)
+
+    case op do
+      "-" ->
+        boxes = update_in(boxes, [Access.elem(index)], &List.delete(&1, label))
+        {boxes, focal_lengths}
+
+      "=" ->
+        boxes =
+          update_in(boxes, [Access.elem(index)], fn bb ->
+            if label in bb, do: bb, else: bb ++ [label]
+          end)
+
+        focal_lengths = Map.put(focal_lengths, label, len)
+        {boxes, focal_lengths}
+    end
+  end)
+
+boxes
+|> Tuple.to_list()
+|> Enum.with_index(1)
+|> Enum.reduce(0, fn {box, box_number}, total ->
+  box
+  |> Enum.with_index(1)
+  |> Enum.reduce(total, fn {label, label_idx}, total ->
+    total + box_number * label_idx * focal_lengths[label]
+  end)
+end)
 ```
