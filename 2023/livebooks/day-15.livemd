@@ -1,0 +1,51 @@
+# Advent of code day 15
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+defmodule Hash do
+  def hash(string) do
+    Enum.reduce(string |> String.split("", trim: true), 0, fn s, current_value ->
+      current_value = :binary.first(s) + current_value
+      current_value = current_value * 17 
+      rem(current_value, 256)
+    end)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+example
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&Hash.hash/1)
+  |> Enum.sum
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
