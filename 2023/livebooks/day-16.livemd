@@ -1,0 +1,168 @@
+# Advent of code day 16
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+parsed = example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  |> List.to_tuple()
+
+rows = tuple_size(parsed) - 1
+cols = tuple_size(elem(parsed, 0)) - 1
+
+grid =
+  for l <- 0..rows, c <- 0..cols, into: %{} do
+    {{l, c}, elem(elem(parsed, l), c)}
+  end
+|> Enum.sort
+|> Enum.into(%{})
+
+```
+
+```elixir
+defmodule Solver2 do
+  # map, {r,c, dr, dc}
+  def solve(grid, start_point) do
+    seen = MapSet.new()
+    queue = [start_point]
+
+    Stream.iterate(0, &(&1 + 1))
+    |> Enum.reduce_while({seen, queue}, fn _, {seen, queue} ->
+      if queue == [] do
+        {:halt, seen}
+      else
+        [{r, c, dr, dc} | queue] = queue
+
+
+
+        r = r + dr
+        c = c + dc
+
+        char = Map.get(grid, {r, c}, nil)
+
+        keep_moving = char == "." or (char == "-" and dc != 0) or (char == "|" and dr != 0)
+
+        cond do
+          char == nil ->
+            {:cont, {seen, queue}}
+
+          keep_moving ->
+            {seen, queue} =
+              if not MapSet.member?(seen, {r, c, dr, dc}) do
+                queue = [{r, c, dr, dc} | queue]
+                seen = MapSet.put(seen, {r, c, dr, dc})
+                {seen, queue}
+              else
+                {seen, queue}
+              end
+
+            {:cont, {seen, queue}}
+
+          char == "/" ->
+            {dr, dc} = {-dc, -dr}
+
+            {seen, queue} =
+              if not MapSet.member?(seen, {r, c, dr, dc}) do
+                queue = [{r, c, dr, dc} | queue]
+                seen = MapSet.put(seen, {r, c, dr, dc})
+                {seen, queue}
+              else
+                {seen, queue}
+              end
+
+            {:cont, {seen, queue}}
+
+          char == "\\" ->
+            {dr, dc} = {dc, dr}
+
+            {seen, queue} =
+              if not MapSet.member?(seen, {r, c, dr, dc}) do
+                queue = [{r, c, dr, dc} | queue]
+                seen = MapSet.put(seen, {r, c, dr, dc})
+                {seen, queue}
+              else
+                {seen, queue}
+              end
+
+            {:cont, {seen, queue}}
+
+          true ->
+            directions = if char == "|", do: [{1, 0}, {-1, 0}], else: [{0, 1}, {0, -1}]
+
+            {seen, queue} =
+              Enum.reduce(directions, {seen, queue}, fn {dn, dc}, {seen_acc, q_acc} ->
+                state = {r, c, dn, dc}
+
+                if state in seen_acc do
+                  {seen_acc, q_acc}
+                else
+                  {MapSet.put(seen_acc, state), q_acc ++ [state]}
+                end
+              end)
+
+            {:cont, {seen, queue}}
+        end
+      end
+    end)
+  end
+end
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Solver2.solve(grid, {0, -1, 0, 1}) 
+|> Enum.map(fn {r, c, _, _} -> {r, c} end) 
+|> Enum.uniq()
+|> Enum.count()
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+max_row = grid |> Map.keys() |> Enum.max_by(fn {r, _c} -> r end) |> elem(0)
+max_col = grid |> Map.keys() |> Enum.max_by(fn {_r, c} -> c end) |> elem(1)
+
+get_border_coords = fn max_row, max_col ->
+  top = for c <- 0..max_col, do: {0, c, 1, 0}
+  bottom = for c <- 0..max_col, do: {max_row, c, -1, 0}
+  left = for r <- 1..(max_row - 1), do: {r, 0, 0, 1}
+  right = for r <- 1..(max_row - 1), do: {r, max_col, 0, -1}
+
+  top ++ bottom ++ left ++ right
+end
+
+coords = get_border_coords.(max_row, max_col)
+
+Enum.reduce(coords, 0, fn coord, total ->
+  current =
+    Solver2.solve(grid, coord)
+    |> Enum.map(fn {r, c, _, _} -> {r, c} end)
+    |> Enum.uniq()
+    |> Enum.count()
+
+  max(current, total)
+end)
+```
