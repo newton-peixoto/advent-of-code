@@ -1,0 +1,111 @@
+# Advent of code day 19
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+```elixir
+[workflows, parts] =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+
+workflows =
+  workflows
+  |> String.split(["\n", "{", "}"], trim: true)
+  |> Enum.chunk_every(2)
+  |> Enum.map(fn [name, body] ->
+    rules = String.split(body, ",", trim: true)
+    {fallback, conds} = List.pop_at(rules, -1)
+
+    conds =
+      Enum.map(conds, fn rule ->
+        [cond, target] = String.split(rule, ":", trim: true)
+        [key, value] = String.split(cond, ["<", ">"], trim: true)
+        value = String.to_integer(value)
+
+        pred =
+          if String.contains?(cond, "<") do
+            fn x -> x < value end
+          else
+            fn x -> x > value end
+          end
+
+        {key, pred, target}
+      end)
+
+    {name, %{rules: conds, fallback: fallback}}
+  end)
+  |> Enum.into(%{})
+
+parts =
+  parts
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn p ->
+    String.split(p, ["{", ",", "}", "="], trim: true)
+    |> Enum.chunk_every(2)
+    |> Enum.map(fn [x, v] -> {x, String.to_integer(v)} end)
+    |> Enum.into(%{})
+  end)
+
+workflows
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Part01 do
+  def solve(workflows, parts) do
+    Enum.reduce(parts, 0, fn part, acc ->
+      acc + do_solve(workflows, part, "in")
+    end)
+  end
+
+  def do_solve(_, _, "R"), do: 0
+
+  def do_solve(_, part, "A"),
+    do: part |> Map.values() |> Enum.sum()
+
+  def do_solve(workflows, part, current) do
+    %{rules: rules, fallback: fallback} = workflows[current]
+
+    Enum.reduce_while(rules, nil, fn {key, pred, target}, _ ->
+      if pred.(part[key]) do
+        {:halt, do_solve(workflows, part, target)}
+      else
+        {:cont, nil}
+      end
+    end)
+    |> case do
+      nil -> do_solve(workflows, part, fallback)
+      value -> value
+    end
+  end
+end
+
+Part01.solve(workflows, parts)
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+
+```
