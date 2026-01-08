@@ -1,0 +1,103 @@
+# Advent of code day 18
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Setup input
+
+```elixir
+example = Kino.Input.textarea("Please paste your input example:")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input = Kino.Input.textarea("Please paste your real input:")
+```
+
+## Part 01
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+# This solution is based on shoelace forula and picks theorem 
+
+
+dirs = %{"R" => {0, 1}, "L" => {0, -1}, "D" => {1, 0}, "U" => {-1, 0}}
+
+{points, boundary_points} =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.reduce({[{0, 0}], 0}, fn line, {[{r, c} | _] = points, b} ->
+    [d, n, _] = String.split(line, " ", trim: true)
+    {dr, dc} = dirs[d]
+    n = String.to_integer(n)
+
+    {[{r + n * dr, c + n * dc} | points], b + n}
+  end)
+
+area =
+  points
+  |> Enum.with_index()
+  |> Enum.map(fn {{x, _y}, i} ->
+    len = length(points)
+    {_x1, y1} = Enum.at(points, rem(i - 1, len))
+    {_x2, y2} = Enum.at(points, rem(i + 1, len))
+    x * (y1 - y2)
+  end)
+  |> Enum.sum()
+  |> abs()
+  |> Integer.floor_div(2)
+
+i = area - div(boundary_points, 2) + 1
+
+boundary_points + i
+```
+
+## Part 02
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+dirs = %{"R" => {0, 1}, "L" => {0, -1}, "D" => {1, 0}, "U" => {-1, 0}}
+dd = %{0 => "R", 1 => "D", 2 => "L", 3 => "U"}
+
+{points, boundary_points} =
+  example
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.reduce({[{0, 0}], 0}, fn line, {[{r, c} | _] = points, b} ->
+    [_, _, code] = String.split(line, " ", trim: true)
+
+    <<distance::binary-size(5), direction::binary-size(1)>> =
+      code |> String.replace(["(", ")", "#"], "")
+
+    n = String.to_integer(distance, 16)
+    d = String.to_integer(direction, 16)
+
+    {dr, dc} = dirs[dd[d]]
+
+    {[{r + n * dr, c + n * dc} | points], b + n}
+  end)
+
+area =
+  points
+  |> Enum.with_index()
+  |> Enum.map(fn {{x, _y}, i} ->
+    len = length(points)
+    {_x1, y1} = Enum.at(points, rem(i - 1, len))
+    {_x2, y2} = Enum.at(points, rem(i + 1, len))
+    x * (y1 - y2)
+  end)
+  |> Enum.sum()
+  |> abs()
+  |> Integer.floor_div(2)
+
+i = area - div(boundary_points, 2) + 1
+
+boundary_points + i
+```
